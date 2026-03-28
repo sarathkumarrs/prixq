@@ -40,7 +40,6 @@ const tableTitle = document.getElementById("tableTitle");
 const offerText = document.getElementById("offerText");
 const offerDateLabel = document.getElementById("offerDateLabel");
 const dailyOffers = document.getElementById("dailyOffers");
-const tableSelect = document.getElementById("tableSelect");
 const demoDateInput = document.getElementById("demoDateInput");
 const menuSearch = document.getElementById("menuSearch");
 const sortSelect = document.getElementById("sortSelect");
@@ -197,10 +196,6 @@ function renderTop() {
   brandMeta.textContent = `${BRAND.area} | ${BRAND.phone}`;
   tableTitle.textContent = `Table ${state.tableId}`;
   offerText.textContent = `Offer for your table: ${table?.offer || "No active offer."}`;
-  tableSelect.innerHTML = TABLES.map((item) => {
-    const selected = item.id === state.tableId ? "selected" : "";
-    return `<option value="${item.id}" ${selected}>${item.id}</option>`;
-  }).join("");
   demoDateInput.value = state.demoDate.toISOString().slice(0, 10);
 }
 
@@ -368,15 +363,6 @@ function renderTickets() {
     })
     .join("");
 }
-
-tableSelect.addEventListener("change", (event) => {
-  state.tableId = event.target.value;
-  toast.textContent = "";
-  updateUrl();
-  renderTop();
-  renderDailyOffers();
-  renderTickets();
-});
 
 demoDateInput.addEventListener("change", (event) => {
   state.demoDate = resolveDemoDate(event.target.value);
