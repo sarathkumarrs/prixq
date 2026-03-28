@@ -64,7 +64,7 @@ h1 {
 
 .hero-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 0.55rem;
   margin-bottom: 0.7rem;
 }
@@ -104,15 +104,6 @@ input[type="search"] {
 .hero input[type="date"] {
   border: 1px solid #b67477;
   background: #fff9f8;
-}
-
-#offerText {
-  margin: 0;
-  background: rgba(255, 255, 255, 0.14);
-  border: 1px solid rgba(255, 255, 255, 0.24);
-  border-radius: 0.7rem;
-  padding: 0.55rem;
-  font-size: 0.86rem;
 }
 
 .section {
@@ -370,9 +361,5 @@ input[type="search"] {
 @media (min-width: 600px) {
   .filters {
     grid-template-columns: 1fr 210px;
-  }
-
-  .hero-grid {
-    grid-template-columns: repeat(2, 1fr);
   }
 }

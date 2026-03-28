@@ -37,10 +37,8 @@ const DEFAULT_ORDERS = [];
 const brandName = document.getElementById("brandName");
 const brandMeta = document.getElementById("brandMeta");
 const tableTitle = document.getElementById("tableTitle");
-const offerText = document.getElementById("offerText");
 const offerDateLabel = document.getElementById("offerDateLabel");
 const dailyOffers = document.getElementById("dailyOffers");
-const demoDateInput = document.getElementById("demoDateInput");
 const menuSearch = document.getElementById("menuSearch");
 const sortSelect = document.getElementById("sortSelect");
 const categoryChips = document.getElementById("categoryChips");
@@ -54,20 +52,11 @@ const toast = document.getElementById("toast");
 
 const urlParams = new URLSearchParams(window.location.search);
 const urlTable = urlParams.get("table");
-const urlDate = urlParams.get("date");
 const validTable = TABLES.find((table) => table.id === urlTable)?.id;
-
-function resolveDemoDate(input) {
-  if (!input || !/^\d{4}-\d{2}-\d{2}$/.test(input)) {
-    return new Date();
-  }
-  const parsed = new Date(`${input}T12:00:00`);
-  return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
-}
 
 const state = {
   tableId: validTable || TABLES[0].id,
-  demoDate: resolveDemoDate(urlDate),
+  demoDate: new Date(),
   activeCategory: "All",
   searchTerm: "",
   sort: "default",
@@ -93,10 +82,8 @@ function saveOrders() {
 }
 
 function updateUrl() {
-  const date = state.demoDate.toISOString().slice(0, 10);
   const next = new URL(window.location.href);
   next.searchParams.set("table", state.tableId);
-  next.searchParams.set("date", date);
   window.history.replaceState({}, "", next.toString());
 }
 
@@ -191,12 +178,9 @@ function renderDailyOffers() {
 }
 
 function renderTop() {
-  const table = TABLES.find((item) => item.id === state.tableId);
   brandName.textContent = BRAND.name;
   brandMeta.textContent = `${BRAND.area} | ${BRAND.phone}`;
   tableTitle.textContent = `Table ${state.tableId}`;
-  offerText.textContent = `Offer for your table: ${table?.offer || "No active offer."}`;
-  demoDateInput.value = state.demoDate.toISOString().slice(0, 10);
 }
 
 function getCategories() {
@@ -363,12 +347,6 @@ function renderTickets() {
     })
     .join("");
 }
-
-demoDateInput.addEventListener("change", (event) => {
-  state.demoDate = resolveDemoDate(event.target.value);
-  updateUrl();
-  renderDailyOffers();
-});
 
 menuSearch.addEventListener("input", (event) => {
   state.searchTerm = event.target.value.trim();
