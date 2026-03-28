@@ -74,6 +74,7 @@ const tabButtons = document.querySelectorAll(".tab-btn");
 const views = document.querySelectorAll(".view");
 const tableQrStrip = document.getElementById("tableQrStrip");
 const customerQuickLink = document.getElementById("customerQuickLink");
+const topCustomerViewBtn = document.getElementById("topCustomerViewBtn");
 const tableOffer = document.getElementById("tableOffer");
 const menuGrid = document.getElementById("menuGrid");
 const cartItems = document.getElementById("cartItems");
@@ -186,6 +187,10 @@ function renderQrTables() {
 }
 
 function renderCustomerLink() {
+  if (topCustomerViewBtn) {
+    topCustomerViewBtn.href = `customer.html?table=${state.currentTable}`;
+    topCustomerViewBtn.textContent = `Open Customer View (${state.currentTable})`;
+  }
   customerQuickLink.innerHTML = `
     <a class="link-btn" href="customer.html?table=${state.currentTable}" target="_blank" rel="noopener">
       Open Customer Phone View for ${state.currentTable}
