@@ -12,11 +12,22 @@
 <body>
   <main class="phone-shell">
     <header class="hero">
-      <p class="mini">QR Menu</p>
-      <h1 id="tableTitle">Table T1</h1>
-      <div class="table-switch">
-        <label for="tableSelect">Demo table switch</label>
-        <select id="tableSelect"></select>
+      <p class="mini">QR Ordering</p>
+      <h1 id="brandName">ALDEEK Container Cafe</h1>
+      <p id="brandMeta" class="brand-meta"></p>
+      <div class="hero-grid">
+        <div>
+          <p class="muted-label">Table</p>
+          <h2 id="tableTitle">Table T1</h2>
+        </div>
+        <div>
+          <label for="tableSelect" class="muted-label">Switch table</label>
+          <select id="tableSelect"></select>
+        </div>
+        <div>
+          <label for="demoDateInput" class="muted-label">Demo date</label>
+          <input id="demoDateInput" type="date">
+        </div>
       </div>
       <p id="offerText"></p>
     </header>
@@ -31,10 +42,20 @@
 
     <section class="section">
       <div class="section-head">
-        <h2>Recommended Menu</h2>
+        <h2>Menu</h2>
         <span id="activeOrderCount">0 Active Orders</span>
       </div>
-      <div id="menuList" class="menu-list"></div>
+      <div class="filters">
+        <input id="menuSearch" type="search" placeholder="Search item or category">
+        <select id="sortSelect">
+          <option value="default">Sort: Recommended</option>
+          <option value="priceAsc">Price: Low to high</option>
+          <option value="priceDesc">Price: High to low</option>
+          <option value="nameAsc">Name: A to Z</option>
+        </select>
+      </div>
+      <div id="categoryChips" class="chip-row"></div>
+      <div id="menuList" class="menu-list grouped"></div>
     </section>
 
     <section class="section">
@@ -53,6 +74,7 @@
     </footer>
   </main>
 
+  <script src="data.js"></script>
   <script src="customer-view.js"></script>
 </body>
 </html>

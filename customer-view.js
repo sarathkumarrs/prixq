@@ -1,11 +1,11 @@
-const TABLES = [
+const FALLBACK_TABLES = [
   { id: "T1", offer: "10% off on all starters." },
   { id: "T2", offer: "Buy 2 mocktails, get 1 free." },
   { id: "T3", offer: "Free brownie above Rs. 1200 bill." },
   { id: "T4", offer: "Flat Rs. 100 off on family combo." }
 ];
 
-const MENU = [
+const FALLBACK_MENU = [
   { id: "M1", name: "Paneer Tikka", price: 220, type: "Starter", prep: 12 },
   { id: "M2", name: "Crispy Corn", price: 180, type: "Starter", prep: 9 },
   { id: "M3", name: "Butter Naan", price: 45, type: "Bread", prep: 4 },
@@ -14,38 +14,37 @@ const MENU = [
   { id: "M6", name: "Brownie Sundae", price: 160, type: "Dessert", prep: 6 }
 ];
 
+const TABLES = Array.isArray(window.APP_DATA?.tables) && window.APP_DATA.tables.length
+  ? window.APP_DATA.tables
+  : FALLBACK_TABLES;
+
+const MENU = Array.isArray(window.APP_DATA?.menu) && window.APP_DATA.menu.length
+  ? window.APP_DATA.menu
+  : FALLBACK_MENU;
+
+const BRAND = window.APP_DATA?.brand || {
+  name: "Container Cafe",
+  area: "Bypass Road",
+  phone: ""
+};
+
 const STORAGE_KEYS = {
   orders: "kot_demo_orders_v1"
 };
 
-const DEFAULT_ORDERS = [
-  {
-    id: "KOT-1001",
-    tableId: "T2",
-    status: "Preparing",
-    createdAt: Date.now() - 7 * 60 * 1000,
-    items: [
-      { id: "M1", qty: 1 },
-      { id: "M4", qty: 1 }
-    ]
-  },
-  {
-    id: "KOT-1002",
-    tableId: "T3",
-    status: "Queued",
-    createdAt: Date.now() - 2 * 60 * 1000,
-    items: [
-      { id: "M5", qty: 1 },
-      { id: "M3", qty: 3 }
-    ]
-  }
-];
+const DEFAULT_ORDERS = [];
 
+const brandName = document.getElementById("brandName");
+const brandMeta = document.getElementById("brandMeta");
 const tableTitle = document.getElementById("tableTitle");
 const offerText = document.getElementById("offerText");
 const offerDateLabel = document.getElementById("offerDateLabel");
 const dailyOffers = document.getElementById("dailyOffers");
 const tableSelect = document.getElementById("tableSelect");
+const demoDateInput = document.getElementById("demoDateInput");
+const menuSearch = document.getElementById("menuSearch");
+const sortSelect = document.getElementById("sortSelect");
+const categoryChips = document.getElementById("categoryChips");
 const menuList = document.getElementById("menuList");
 const ticketList = document.getElementById("ticketList");
 const activeOrderCount = document.getElementById("activeOrderCount");
@@ -54,27 +53,25 @@ const cartTotal = document.getElementById("cartTotal");
 const placeBtn = document.getElementById("placeBtn");
 const toast = document.getElementById("toast");
 
-const urlTable = new URLSearchParams(window.location.search).get("table");
-const urlDate = new URLSearchParams(window.location.search).get("date");
+const urlParams = new URLSearchParams(window.location.search);
+const urlTable = urlParams.get("table");
+const urlDate = urlParams.get("date");
 const validTable = TABLES.find((table) => table.id === urlTable)?.id;
 
 function resolveDemoDate(input) {
-  if (!input) {
-    return new Date();
-  }
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(input)) {
+  if (!input || !/^\d{4}-\d{2}-\d{2}$/.test(input)) {
     return new Date();
   }
   const parsed = new Date(`${input}T12:00:00`);
-  if (Number.isNaN(parsed.getTime())) {
-    return new Date();
-  }
-  return parsed;
+  return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
 }
 
 const state = {
   tableId: validTable || TABLES[0].id,
   demoDate: resolveDemoDate(urlDate),
+  activeCategory: "All",
+  searchTerm: "",
+  sort: "default",
   cart: {},
   orders: loadOrders()
 };
@@ -96,12 +93,26 @@ function saveOrders() {
   localStorage.setItem(STORAGE_KEYS.orders, JSON.stringify(state.orders));
 }
 
+function updateUrl() {
+  const date = state.demoDate.toISOString().slice(0, 10);
+  const next = new URL(window.location.href);
+  next.searchParams.set("table", state.tableId);
+  next.searchParams.set("date", date);
+  window.history.replaceState({}, "", next.toString());
+}
+
 function money(value) {
   return `Rs. ${value}`;
 }
 
 function getMenuItem(id) {
-  return MENU.find((item) => item.id === id);
+  return MENU.find((item) => item.id === id) || {
+    id,
+    name: `Unknown Item (${id})`,
+    price: 0,
+    type: "Unknown",
+    prep: 8
+  };
 }
 
 function cartTotalValue() {
@@ -132,24 +143,24 @@ function getTodayOffers(dateObj, tableId) {
   const day = dateObj.getDay();
 
   const weekdayOffers = {
-    0: { title: "Sunday Family Combo", detail: "2 mains + 2 mocktails + dessert platter at Rs. 999." },
-    1: { title: "Monday Light Meal", detail: "Any biryani + starter combo at 15% off." },
-    2: { title: "Tuesday Treat", detail: "Free brownie with every order above Rs. 800." },
-    3: { title: "Midweek Combo", detail: "Paneer Tikka + Veg Biryani combo at Rs. 429." },
-    4: { title: "Thursday Feast", detail: "Flat Rs. 120 off on family combo menu." },
-    5: { title: "Friday Party Offer", detail: "3 mocktails for the price of 2." },
-    6: { title: "Saturday Grill Combo", detail: "Starter + main + dessert at 18% off." }
+    0: { title: "Sunday Combo", detail: "Fried chicken family pack at discounted pricing." },
+    1: { title: "Monday Saver", detail: "Tea and snacks combo deals available all day." },
+    2: { title: "Tuesday Treat", detail: "Free brownie with orders above Rs. 800." },
+    3: { title: "Midweek Deal", detail: "Combo meals with extra add-ons at lower rates." },
+    4: { title: "Thursday Feast", detail: "Flat Rs. 120 off on selected family combos." },
+    5: { title: "Friday Party", detail: "3 mocktails for the price of 2." },
+    6: { title: "Weekend Grill", detail: "Chicken combo bundles at best value prices." }
   };
 
   const specialDates = {
-    "02-14": { title: "Valentine's Day Special", detail: "Couple combo (starter + 2 mains + dessert) at Rs. 999." },
+    "02-14": { title: "Valentine Special", detail: "Couple combo menu at Rs. 999." },
     "12-25": { title: "Christmas Feast", detail: "Festive combo + dessert platter at 20% off." },
-    "12-31": { title: "New Year Eve Deal", detail: "Celebration combo menu with flat Rs. 250 off." }
+    "12-31": { title: "Year-End Deal", detail: "Celebration combo with flat Rs. 250 off." }
   };
 
   const tableOffer = TABLES.find((table) => table.id === tableId)?.offer || "";
   const offers = [
-    { title: "Table QR Offer", detail: tableOffer },
+    { title: "Table Offer", detail: tableOffer },
     weekdayOffers[day],
     { title: "Happy Hour", detail: "4:00 PM to 7:00 PM: 20% off on mocktails." }
   ];
@@ -182,52 +193,122 @@ function renderDailyOffers() {
 
 function renderTop() {
   const table = TABLES.find((item) => item.id === state.tableId);
+  brandName.textContent = BRAND.name;
+  brandMeta.textContent = `${BRAND.area} | ${BRAND.phone}`;
   tableTitle.textContent = `Table ${state.tableId}`;
-  offerText.textContent = `Offer for your table: ${table.offer}`;
+  offerText.textContent = `Offer for your table: ${table?.offer || "No active offer."}`;
   tableSelect.innerHTML = TABLES.map((item) => {
     const selected = item.id === state.tableId ? "selected" : "";
     return `<option value="${item.id}" ${selected}>${item.id}</option>`;
   }).join("");
+  demoDateInput.value = state.demoDate.toISOString().slice(0, 10);
+}
+
+function getCategories() {
+  return ["All", ...new Set(MENU.map((item) => item.type))];
+}
+
+function renderCategoryChips() {
+  categoryChips.innerHTML = getCategories()
+    .map((category) => {
+      const active = category === state.activeCategory ? "active" : "";
+      return `<button class="chip ${active}" data-category="${category}">${category}</button>`;
+    })
+    .join("");
+
+  categoryChips.querySelectorAll(".chip").forEach((chip) => {
+    chip.addEventListener("click", () => {
+      state.activeCategory = chip.dataset.category;
+      renderCategoryChips();
+      renderMenu();
+    });
+  });
+}
+
+function getFilteredMenuItems() {
+  let items = MENU.slice();
+
+  if (state.activeCategory !== "All") {
+    items = items.filter((item) => item.type === state.activeCategory);
+  }
+
+  if (state.searchTerm) {
+    const key = state.searchTerm.toLowerCase();
+    items = items.filter((item) => `${item.name} ${item.type}`.toLowerCase().includes(key));
+  }
+
+  if (state.sort === "priceAsc") {
+    items.sort((a, b) => a.price - b.price);
+  } else if (state.sort === "priceDesc") {
+    items.sort((a, b) => b.price - a.price);
+  } else if (state.sort === "nameAsc") {
+    items.sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  return items;
 }
 
 function renderMenu() {
+  const filtered = getFilteredMenuItems();
   menuList.innerHTML = "";
-  MENU.forEach((item) => {
-    const qty = state.cart[item.id] || 0;
-    const card = document.createElement("article");
-    card.className = "menu-item";
-    card.innerHTML = `
-      <div class="top-line">
-        <div>
-          <p class="name">${item.name}</p>
-          <span class="meta">${item.prep} min prep</span>
-          <span class="tag">${item.type}</span>
+
+  if (!filtered.length) {
+    menuList.innerHTML = `<p class="empty">No items match your filter.</p>`;
+    return;
+  }
+
+  const groups = filtered.reduce((acc, item) => {
+    if (!acc[item.type]) {
+      acc[item.type] = [];
+    }
+    acc[item.type].push(item);
+    return acc;
+  }, {});
+
+  Object.entries(groups).forEach(([groupName, items]) => {
+    const group = document.createElement("section");
+    group.className = "menu-group";
+    group.innerHTML = `<h3>${groupName}</h3>`;
+
+    items.forEach((item) => {
+      const qty = state.cart[item.id] || 0;
+      const card = document.createElement("article");
+      card.className = "menu-item";
+      card.innerHTML = `
+        <div class="top-line">
+          <div>
+            <p class="name">${item.name}</p>
+            <span class="meta">${item.prep} min prep</span>
+            <span class="tag">${item.type}</span>
+          </div>
+          <strong>${money(item.price)}</strong>
         </div>
-        <strong>${money(item.price)}</strong>
-      </div>
-      <div class="qty">
-        <button class="minus">-</button>
-        <strong>${qty}</strong>
-        <button class="plus">+</button>
-      </div>
-    `;
-    card.querySelector(".plus").addEventListener("click", () => {
-      state.cart[item.id] = (state.cart[item.id] || 0) + 1;
-      renderMenu();
-      renderCart();
+        <div class="qty">
+          <button class="minus">-</button>
+          <strong>${qty}</strong>
+          <button class="plus">+</button>
+        </div>
+      `;
+      card.querySelector(".plus").addEventListener("click", () => {
+        state.cart[item.id] = (state.cart[item.id] || 0) + 1;
+        renderMenu();
+        renderCart();
+      });
+      card.querySelector(".minus").addEventListener("click", () => {
+        if (!state.cart[item.id]) {
+          return;
+        }
+        state.cart[item.id] -= 1;
+        if (state.cart[item.id] <= 0) {
+          delete state.cart[item.id];
+        }
+        renderMenu();
+        renderCart();
+      });
+      group.appendChild(card);
     });
-    card.querySelector(".minus").addEventListener("click", () => {
-      if (!state.cart[item.id]) {
-        return;
-      }
-      state.cart[item.id] -= 1;
-      if (state.cart[item.id] <= 0) {
-        delete state.cart[item.id];
-      }
-      renderMenu();
-      renderCart();
-    });
-    menuList.appendChild(card);
+
+    menuList.appendChild(group);
   });
 }
 
@@ -257,6 +338,13 @@ function tableTickets() {
     .sort((a, b) => b.createdAt - a.createdAt);
 }
 
+function ticketItemsSummary(items) {
+  return items
+    .slice(0, 2)
+    .map((line) => `${getMenuItem(line.id).name} x${line.qty}`)
+    .join(", ");
+}
+
 function renderTickets() {
   const tickets = tableTickets();
   const activeCount = tickets.filter((ticket) => ticket.status === "Queued" || ticket.status === "Preparing").length;
@@ -274,6 +362,7 @@ function renderTickets() {
         <article class="ticket ${ticket.status}">
           <strong>${ticket.id} - ${ticket.status}</strong>
           <span>Estimated wait: ${eta} min</span>
+          <span>${ticketItemsSummary(ticket.items)}</span>
         </article>
       `;
     })
@@ -283,9 +372,26 @@ function renderTickets() {
 tableSelect.addEventListener("change", (event) => {
   state.tableId = event.target.value;
   toast.textContent = "";
+  updateUrl();
   renderTop();
   renderDailyOffers();
   renderTickets();
+});
+
+demoDateInput.addEventListener("change", (event) => {
+  state.demoDate = resolveDemoDate(event.target.value);
+  updateUrl();
+  renderDailyOffers();
+});
+
+menuSearch.addEventListener("input", (event) => {
+  state.searchTerm = event.target.value.trim();
+  renderMenu();
+});
+
+sortSelect.addEventListener("change", (event) => {
+  state.sort = event.target.value;
+  renderMenu();
 });
 
 placeBtn.addEventListener("click", () => {
@@ -325,8 +431,10 @@ window.addEventListener("storage", (event) => {
 
 function init() {
   saveOrders();
+  updateUrl();
   renderTop();
   renderDailyOffers();
+  renderCategoryChips();
   renderMenu();
   renderCart();
   renderTickets();

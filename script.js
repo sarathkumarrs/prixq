@@ -1,11 +1,11 @@
-const TABLES = [
-  { id: "T1", offer: "Table T1 Offer: 10% off on all starters." },
-  { id: "T2", offer: "Table T2 Offer: Buy 2 mocktails, get 1 free." },
-  { id: "T3", offer: "Table T3 Offer: Free brownie above Rs. 1200 bill." },
-  { id: "T4", offer: "Table T4 Offer: Flat Rs. 100 off on family combo." }
+const FALLBACK_TABLES = [
+  { id: "T1", offer: "10% off on all starters." },
+  { id: "T2", offer: "Buy 2 mocktails, get 1 free." },
+  { id: "T3", offer: "Free brownie above Rs. 1200 bill." },
+  { id: "T4", offer: "Flat Rs. 100 off on family combo." }
 ];
 
-const MENU = [
+const FALLBACK_MENU = [
   { id: "M1", name: "Paneer Tikka", price: 220, type: "Starter", prep: 12 },
   { id: "M2", name: "Crispy Corn", price: 180, type: "Starter", prep: 9 },
   { id: "M3", name: "Butter Naan", price: 45, type: "Bread", prep: 4 },
@@ -14,33 +14,20 @@ const MENU = [
   { id: "M6", name: "Brownie Sundae", price: 160, type: "Dessert", prep: 6 }
 ];
 
+const TABLES = Array.isArray(window.APP_DATA?.tables) && window.APP_DATA.tables.length
+  ? window.APP_DATA.tables
+  : FALLBACK_TABLES;
+
+const MENU = Array.isArray(window.APP_DATA?.menu) && window.APP_DATA.menu.length
+  ? window.APP_DATA.menu
+  : FALLBACK_MENU;
+
 const STORAGE_KEYS = {
   orders: "kot_demo_orders_v1",
   paidBills: "kot_demo_paid_bills_v1"
 };
 
-const DEFAULT_ORDERS = [
-  {
-    id: "KOT-1001",
-    tableId: "T2",
-    status: "Preparing",
-    createdAt: Date.now() - 7 * 60 * 1000,
-    items: [
-      { id: "M1", qty: 1 },
-      { id: "M4", qty: 1 }
-    ]
-  },
-  {
-    id: "KOT-1002",
-    tableId: "T3",
-    status: "Queued",
-    createdAt: Date.now() - 2 * 60 * 1000,
-    items: [
-      { id: "M5", qty: 1 },
-      { id: "M3", qty: 3 }
-    ]
-  }
-];
+const DEFAULT_ORDERS = [];
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
@@ -110,7 +97,13 @@ function money(value) {
 }
 
 function getMenuItem(id) {
-  return MENU.find((item) => item.id === id);
+  return MENU.find((item) => item.id === id) || {
+    id,
+    name: `Unknown Item (${id})`,
+    price: 0,
+    type: "Unknown",
+    prep: 8
+  };
 }
 
 function cartTotalValue() {
@@ -199,7 +192,10 @@ function renderCustomerLink() {
 }
 
 function renderOffer() {
-  const selected = TABLES.find((t) => t.id === state.currentTable);
+  const selected = TABLES.find((t) => t.id === state.currentTable) || {
+    id: state.currentTable,
+    offer: "No table-specific offer configured."
+  };
   const today = new Date();
   const label = today.toLocaleDateString("en-IN", {
     weekday: "short",
