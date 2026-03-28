@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OrderFlow KOT Demo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Quick Client Demo</p>
+        <h1>Table QR to KOT + Billing Workflow</h1>
+      </div>
+      <div class="pill">Demo Data Only</div>
+    </header>
+
+    <nav class="view-tabs">
+      <button class="tab-btn active" data-view="customer">Customer (QR Menu)</button>
+      <button class="tab-btn" data-view="kot">KOT Terminal</button>
+      <button class="tab-btn" data-view="billing">Billing Counter</button>
+    </nav>
+
+    <section id="customer" class="view active">
+      <div class="customer-layout">
+        <article class="panel">
+          <h2>1) Scan Table QR</h2>
+          <p class="subtext">Simulated scan: select the table QR that customer scanned.</p>
+          <div class="qr-strip" id="tableQrStrip"></div>
+          <div id="customerQuickLink"></div>
+          <div class="offer-box" id="tableOffer"></div>
+        </article>
+
+        <article class="panel">
+          <h2>2) Menu + Offers</h2>
+          <p class="subtext">Customer orders directly from phone.</p>
+          <div class="menu-grid" id="menuGrid"></div>
+        </article>
+
+        <article class="panel cart-panel">
+          <h2>3) Place Order</h2>
+          <div id="cartItems" class="cart-items"></div>
+          <div class="bill-row">
+            <span>Total</span>
+            <strong id="cartTotal">Rs. 0</strong>
+          </div>
+          <button id="placeOrderBtn" class="btn-primary">Dispatch Order to KOT</button>
+          <div id="orderToast" class="toast"></div>
+        </article>
+      </div>
+    </section>
+
+    <section id="kot" class="view">
+      <div class="panel">
+        <h2>Kitchen Order Ticket (Live Queue)</h2>
+        <div class="kot-stats">
+          <div class="stat">
+            <span>Active Tickets</span>
+            <strong id="activeTickets">0</strong>
+          </div>
+          <div class="stat">
+            <span>Avg Wait</span>
+            <strong id="avgWait">0 min</strong>
+          </div>
+          <div class="stat">
+            <span>Next Ready</span>
+            <strong id="nextReady">-</strong>
+          </div>
+        </div>
+        <div id="kotQueue" class="kot-queue"></div>
+      </div>
+    </section>
+
+    <section id="billing" class="view">
+      <div class="billing-layout">
+        <article class="panel">
+          <h2>Billing by Table Number</h2>
+          <label for="billingTable" class="subtext">Ask customer table number and fetch bill instantly.</label>
+          <select id="billingTable"></select>
+          <div id="billingDetails" class="billing-details"></div>
+          <button id="markPaidBtn" class="btn-primary">Mark As Paid</button>
+        </article>
+        <article class="panel">
+          <h2>Paid Bills</h2>
+          <div id="paidBills" class="paid-bills"></div>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,268 @@
+:root {
+  --bg: #f2f5f8;
+  --card: #ffffff;
+  --line: #dbe4eb;
+  --text: #10222f;
+  --muted: #5d6d7a;
+  --accent: #e0612f;
+  --accent-soft: #ffe4d9;
+  --ok: #187e4f;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Space Grotesk", sans-serif;
+  color: var(--text);
+  background:
+    radial-gradient(circle at 100% -25%, #ffd8c8 0%, transparent 40%),
+    radial-gradient(circle at 0 120%, #d9f0f8 0%, transparent 45%),
+    var(--bg);
+}
+
+.phone-shell {
+  width: min(520px, 100%);
+  margin: 0 auto;
+  min-height: 100vh;
+  padding: 0.9rem 0.9rem 10.6rem;
+}
+
+.hero {
+  background: linear-gradient(135deg, #132636 0%, #21445e 100%);
+  color: #f2fbff;
+  border-radius: 1rem;
+  padding: 1rem;
+  margin-bottom: 0.9rem;
+}
+
+.mini {
+  margin: 0 0 0.15rem;
+  font-size: 0.74rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+h1 {
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.table-switch {
+  margin: 0.65rem 0 0.5rem;
+}
+
+.table-switch label {
+  display: block;
+  font-size: 0.8rem;
+  margin-bottom: 0.28rem;
+  opacity: 0.85;
+}
+
+select {
+  width: 100%;
+  border: 1px solid #3e5f79;
+  background: #f8fbff;
+  border-radius: 0.6rem;
+  padding: 0.56rem;
+  font-family: inherit;
+}
+
+.hero p {
+  margin: 0;
+}
+
+.section {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 0.95rem;
+  padding: 0.85rem;
+  margin-bottom: 0.8rem;
+}
+
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  align-items: baseline;
+}
+
+h2 {
+  margin: 0 0 0.6rem;
+  font-size: 1.02rem;
+}
+
+.section-head span {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.offer-list {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.offer-item {
+  border: 1px solid var(--line);
+  background: linear-gradient(135deg, #fff8f3 0%, #fff 75%);
+  border-radius: 0.7rem;
+  padding: 0.55rem;
+}
+
+.offer-item strong {
+  display: block;
+  font-size: 0.9rem;
+  color: #9a421e;
+}
+
+.offer-item span {
+  font-size: 0.82rem;
+  color: #455a68;
+}
+
+.menu-list {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.menu-item {
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  padding: 0.65rem;
+}
+
+.top-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 0.5rem;
+}
+
+.name {
+  margin: 0;
+  font-weight: 700;
+  font-size: 0.93rem;
+}
+
+.meta {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.tag {
+  display: inline-block;
+  margin-top: 0.24rem;
+  font-size: 0.7rem;
+  color: #0f5f8a;
+  background: #e8f4ff;
+  border-radius: 999px;
+  padding: 0.16rem 0.42rem;
+}
+
+.qty {
+  margin-top: 0.45rem;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.qty button {
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 0.45rem;
+  width: 27px;
+  height: 27px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.ticket-list {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.ticket {
+  border: 1px solid var(--line);
+  border-left: 4px solid #b2c4d1;
+  border-radius: 0.7rem;
+  padding: 0.55rem;
+}
+
+.ticket.Queued {
+  border-left-color: #c47b0b;
+}
+
+.ticket.Preparing {
+  border-left-color: #137bc7;
+}
+
+.ticket.Ready {
+  border-left-color: var(--ok);
+}
+
+.ticket strong {
+  display: block;
+}
+
+.ticket span {
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.cart-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #fff;
+  border-top: 1px solid var(--line);
+  padding: 0.75rem max(0.9rem, (100vw - 520px) / 2 + 0.9rem) 0.8rem;
+}
+
+.cart-lines {
+  min-height: 52px;
+  max-height: 100px;
+  overflow: auto;
+}
+
+.line {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.84rem;
+  color: #2f4452;
+  padding: 0.14rem 0;
+}
+
+.total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 0.35rem 0 0.55rem;
+}
+
+#placeBtn {
+  width: 100%;
+  border: none;
+  border-radius: 0.7rem;
+  padding: 0.7rem;
+  background: linear-gradient(135deg, #d95429 0%, #eb8e39 100%);
+  color: #fff;
+  font-family: inherit;
+  font-weight: 700;
+}
+
+.toast {
+  margin: 0.45rem 0 0;
+  min-height: 16px;
+  font-size: 0.8rem;
+  color: var(--ok);
+}
+
+.empty {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
