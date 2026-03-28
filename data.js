@@ -101,6 +101,65 @@
     { id: "SP04", name: "Paalkappa Beef", price: 130, type: "Nadan Special", prep: 14 }
   ];
 
+  const offers = [
+    {
+      id: "OFR01",
+      title: "Best Value Meal",
+      badge: "Most Chosen",
+      windowLabel: "All Day",
+      dealPrice: 199,
+      cta: "Add Deal",
+      priority: 1,
+      items: [
+        { id: "FC01", qty: 1 },
+        { id: "MJ03", qty: 1 }
+      ]
+    },
+    {
+      id: "OFR02",
+      title: "Snack Booster",
+      badge: "Popular Add-on",
+      windowLabel: "Till 11:00 PM",
+      dealPrice: 159,
+      cta: "Add Deal",
+      priority: 2,
+      items: [
+        { id: "FF01", qty: 1 },
+        { id: "CP01", qty: 1 }
+      ]
+    },
+    {
+      id: "OFR03",
+      title: "Party Pair Combo",
+      badge: "Limited Time",
+      windowLabel: "4:00 PM - 11:00 PM",
+      startsAt: "16:00",
+      endsAt: "23:00",
+      dealPrice: 309,
+      cta: "Add Deal",
+      priority: 3,
+      items: [
+        { id: "FC02", qty: 1 },
+        { id: "MJ04", qty: 1 }
+      ]
+    },
+    {
+      id: "OFR04",
+      title: "Tea Time Pair",
+      badge: "Quick Bite",
+      windowLabel: "4:00 PM - 7:00 PM",
+      startsAt: "16:00",
+      endsAt: "19:00",
+      dealPrice: 50,
+      cta: "Add Deal",
+      priority: 4,
+      items: [
+        { id: "HD01", qty: 2 },
+        { id: "ML09", qty: 2 }
+      ]
+    }
+  ];
+
   window.APP_DATA = {
     brand: {
       name: "ALDEEK Container Cafe",
@@ -108,6 +167,7 @@
       phone: "8891141064, 9747961384"
     },
     tables,
-    menu
+    menu,
+    offers
   };
 })();

@@ -14,6 +14,8 @@ const FALLBACK_MENU = [
   { id: "M6", name: "Brownie Sundae", price: 160, type: "Dessert", prep: 6 }
 ];
 
+const FALLBACK_OFFERS = [];
+
 const TABLES = Array.isArray(window.APP_DATA?.tables) && window.APP_DATA.tables.length
   ? window.APP_DATA.tables
   : FALLBACK_TABLES;
@@ -21,6 +23,10 @@ const TABLES = Array.isArray(window.APP_DATA?.tables) && window.APP_DATA.tables.
 const MENU = Array.isArray(window.APP_DATA?.menu) && window.APP_DATA.menu.length
   ? window.APP_DATA.menu
   : FALLBACK_MENU;
+
+const UPSELL_OFFERS = Array.isArray(window.APP_DATA?.offers) && window.APP_DATA.offers.length
+  ? window.APP_DATA.offers
+  : FALLBACK_OFFERS;
 
 const BRAND = window.APP_DATA?.brand || {
   name: "Container Cafe",
@@ -46,7 +52,9 @@ const menuList = document.getElementById("menuList");
 const ticketList = document.getElementById("ticketList");
 const activeOrderCount = document.getElementById("activeOrderCount");
 const cartLines = document.getElementById("cartLines");
-const cartTotal = document.getElementById("cartTotal");
+const quickUpsell = document.getElementById("quickUpsell");
+const savingsRow = document.getElementById("savingsRow");
+const cartSavings = document.getElementById("cartSavings");
 const placeBtn = document.getElementById("placeBtn");
 const toast = document.getElementById("toast");
 
@@ -56,7 +64,6 @@ const validTable = TABLES.find((table) => table.id === urlTable)?.id;
 
 const state = {
   tableId: validTable || TABLES[0].id,
-  demoDate: new Date(),
   activeCategory: "All",
   searchTerm: "",
   sort: "default",
@@ -101,13 +108,6 @@ function getMenuItem(id) {
   };
 }
 
-function cartTotalValue() {
-  return Object.entries(state.cart).reduce((sum, [itemId, qty]) => {
-    const item = getMenuItem(itemId);
-    return sum + item.price * qty;
-  }, 0);
-}
-
 function nextKotId() {
   const max = state.orders.reduce((acc, order) => {
     const idNum = Number(order.id.split("-")[1]) || 1000;
@@ -124,57 +124,184 @@ function getOrderWaitMins(order) {
   return Math.max(4, prepWeight + Math.max(queueAhead, 0) * 3);
 }
 
-function getTodayOffers(dateObj, tableId) {
-  const key = `${String(dateObj.getMonth() + 1).padStart(2, "0")}-${String(dateObj.getDate()).padStart(2, "0")}`;
-  const day = dateObj.getDay();
-
-  const weekdayOffers = {
-    0: { title: "Sunday Combo", detail: "Fried chicken family pack at discounted pricing." },
-    1: { title: "Monday Saver", detail: "Tea and snacks combo deals available all day." },
-    2: { title: "Tuesday Treat", detail: "Free brownie with orders above Rs. 800." },
-    3: { title: "Midweek Deal", detail: "Combo meals with extra add-ons at lower rates." },
-    4: { title: "Thursday Feast", detail: "Flat Rs. 120 off on selected family combos." },
-    5: { title: "Friday Party", detail: "3 mocktails for the price of 2." },
-    6: { title: "Weekend Grill", detail: "Chicken combo bundles at best value prices." }
-  };
-
-  const specialDates = {
-    "02-14": { title: "Valentine Special", detail: "Couple combo menu at Rs. 999." },
-    "12-25": { title: "Christmas Feast", detail: "Festive combo + dessert platter at 20% off." },
-    "12-31": { title: "Year-End Deal", detail: "Celebration combo with flat Rs. 250 off." }
-  };
-
-  const tableOffer = TABLES.find((table) => table.id === tableId)?.offer || "";
-  const offers = [
-    { title: "Table Offer", detail: tableOffer },
-    weekdayOffers[day],
-    { title: "Happy Hour", detail: "4:00 PM to 7:00 PM: 20% off on mocktails." }
-  ];
-
-  if (specialDates[key]) {
-    offers.unshift(specialDates[key]);
+function parseTimeValue(value) {
+  if (!value || !/^\d{2}:\d{2}$/.test(value)) {
+    return null;
   }
-  return offers;
+  const [h, m] = value.split(":").map(Number);
+  return h * 60 + m;
+}
+
+function getMinutesOfDay(dateObj) {
+  return dateObj.getHours() * 60 + dateObj.getMinutes();
+}
+
+function isOfferActiveNow(offer, dateObj) {
+  const start = parseTimeValue(offer.startsAt);
+  const end = parseTimeValue(offer.endsAt);
+  if (start === null || end === null) {
+    return true;
+  }
+  const current = getMinutesOfDay(dateObj);
+  return current >= start && current <= end;
+}
+
+function getActiveOffers(dateObj = new Date()) {
+  return UPSELL_OFFERS
+    .filter((offer) => isOfferActiveNow(offer, dateObj))
+    .sort((a, b) => (a.priority || 99) - (b.priority || 99));
+}
+
+function getOfferOriginalPrice(offer) {
+  return offer.items.reduce((sum, line) => {
+    const item = getMenuItem(line.id);
+    return sum + item.price * line.qty;
+  }, 0);
+}
+
+function offerLineLabel(offer) {
+  return offer.items
+    .map((line) => {
+      const item = getMenuItem(line.id);
+      return `${item.name}${line.qty > 1 ? ` x${line.qty}` : ""}`;
+    })
+    .join(" + ");
+}
+
+function computeCartPricing() {
+  const subtotal = Object.entries(state.cart).reduce((sum, [itemId, qty]) => {
+    const item = getMenuItem(itemId);
+    return sum + item.price * qty;
+  }, 0);
+
+  const remaining = Object.entries(state.cart).reduce((acc, [itemId, qty]) => {
+    acc[itemId] = qty;
+    return acc;
+  }, {});
+
+  const applications = [];
+  const activeOffers = getActiveOffers();
+
+  activeOffers.forEach((offer) => {
+    const originalUnit = getOfferOriginalPrice(offer);
+    if (offer.dealPrice >= originalUnit) {
+      return;
+    }
+
+    const count = offer.items.reduce((min, req) => {
+      const available = remaining[req.id] || 0;
+      return Math.min(min, Math.floor(available / req.qty));
+    }, Number.MAX_SAFE_INTEGER);
+
+    if (!Number.isFinite(count) || count < 1) {
+      return;
+    }
+
+    offer.items.forEach((req) => {
+      remaining[req.id] = (remaining[req.id] || 0) - req.qty * count;
+    });
+
+    const originalTotal = originalUnit * count;
+    const dealTotal = offer.dealPrice * count;
+    applications.push({
+      offerId: offer.id,
+      title: offer.title,
+      count,
+      originalTotal,
+      dealTotal,
+      savings: originalTotal - dealTotal
+    });
+  });
+
+  const remainingTotal = Object.entries(remaining).reduce((sum, [itemId, qty]) => {
+    if (qty <= 0) {
+      return sum;
+    }
+    const item = getMenuItem(itemId);
+    return sum + item.price * qty;
+  }, 0);
+
+  const dealsTotal = applications.reduce((sum, app) => sum + app.dealTotal, 0);
+  const total = dealsTotal + remainingTotal;
+  const savings = Math.max(0, subtotal - total);
+
+  return {
+    subtotal,
+    savings,
+    total,
+    applications
+  };
+}
+
+function addItemToCart(itemId, qty) {
+  state.cart[itemId] = (state.cart[itemId] || 0) + qty;
+  if (state.cart[itemId] <= 0) {
+    delete state.cart[itemId];
+  }
+}
+
+function addOfferBundle(offerId) {
+  const offer = UPSELL_OFFERS.find((entry) => entry.id === offerId);
+  if (!offer) {
+    return;
+  }
+  offer.items.forEach((line) => addItemToCart(line.id, line.qty));
+  toast.textContent = `${offer.title} added to cart.`;
+  toast.style.color = "#187e4f";
+  renderMenu();
+  renderCart();
+  renderDailyOffers();
 }
 
 function renderDailyOffers() {
-  const formatted = state.demoDate.toLocaleDateString("en-IN", {
+  const now = new Date();
+  const formatted = now.toLocaleDateString("en-IN", {
     weekday: "long",
     day: "2-digit",
     month: "short"
   });
   offerDateLabel.textContent = formatted;
-  const offers = getTodayOffers(state.demoDate, state.tableId);
+
+  const offers = getActiveOffers(now);
+  const pricing = computeCartPricing();
+  const appliedByOffer = pricing.applications.reduce((acc, app) => {
+    acc[app.offerId] = app.count;
+    return acc;
+  }, {});
+
+  if (!offers.length) {
+    dailyOffers.innerHTML = `<p class="empty">No live offers right now.</p>`;
+    return;
+  }
+
   dailyOffers.innerHTML = offers
-    .map(
-      (offer) => `
-      <article class="offer-item">
-        <strong>${offer.title}</strong>
-        <span>${offer.detail}</span>
-      </article>
-    `
-    )
+    .map((offer) => {
+      const original = getOfferOriginalPrice(offer);
+      const save = Math.max(0, original - offer.dealPrice);
+      const appliedCount = appliedByOffer[offer.id] || 0;
+      return `
+        <article class="offer-item">
+          <div class="offer-head">
+            <span class="offer-badge">${offer.badge || "Offer"}</span>
+            <span class="offer-window">${offer.windowLabel || "Today"}</span>
+          </div>
+          <strong>${offer.title}</strong>
+          <p class="offer-lines">${offerLineLabel(offer)}</p>
+          <div class="offer-pricing">
+            <span class="offer-old">${money(original)}</span>
+            <span class="offer-deal">${money(offer.dealPrice)}</span>
+            <span class="offer-save">Save ${money(save)}</span>
+          </div>
+          <button class="offer-btn" data-offer-id="${offer.id}">${offer.cta || "Add Deal"}</button>
+          ${appliedCount > 0 ? `<div class="offer-applied">Applied in cart x${appliedCount}</div>` : ""}
+        </article>
+      `;
+    })
     .join("");
+
+  dailyOffers.querySelectorAll(".offer-btn").forEach((button) => {
+    button.addEventListener("click", () => addOfferBundle(button.dataset.offerId));
+  });
 }
 
 function renderTop() {
@@ -269,26 +396,96 @@ function renderMenu() {
         </div>
       `;
       card.querySelector(".plus").addEventListener("click", () => {
-        state.cart[item.id] = (state.cart[item.id] || 0) + 1;
+        addItemToCart(item.id, 1);
         renderMenu();
         renderCart();
+        renderDailyOffers();
       });
       card.querySelector(".minus").addEventListener("click", () => {
         if (!state.cart[item.id]) {
           return;
         }
-        state.cart[item.id] -= 1;
-        if (state.cart[item.id] <= 0) {
-          delete state.cart[item.id];
-        }
+        addItemToCart(item.id, -1);
         renderMenu();
         renderCart();
+        renderDailyOffers();
       });
       group.appendChild(card);
     });
 
     menuList.appendChild(group);
   });
+}
+
+function getQuickUpsellSuggestion(pricing) {
+  const totalQty = Object.values(state.cart).reduce((sum, qty) => sum + qty, 0);
+  if (!totalQty) {
+    return null;
+  }
+
+  const hasItem = (itemId) => Boolean(state.cart[itemId]);
+  const hasType = (typeName) =>
+    Object.keys(state.cart).some((itemId) => {
+      const item = getMenuItem(itemId);
+      return item.type === typeName;
+    });
+
+  if (hasType("Fried Chicken Combo") && !hasItem("CP01")) {
+    return {
+      itemId: "CP01",
+      title: "Popular add-on",
+      detail: "Customers usually add Leg Piece with chicken combo."
+    };
+  }
+
+  if (pricing.subtotal >= 150 && !hasType("Mojitos")) {
+    return {
+      itemId: "MJ03",
+      title: "Cooler suggestion",
+      detail: "Add Mint Mojito to increase combo value."
+    };
+  }
+
+  if (pricing.subtotal < 180 && !hasItem("FF01")) {
+    return {
+      itemId: "FF01",
+      title: "Quick upsell",
+      detail: "Chicken Burger is a frequent add-on."
+    };
+  }
+
+  return null;
+}
+
+function renderQuickUpsell(pricing) {
+  const suggestion = getQuickUpsellSuggestion(pricing);
+  if (!suggestion) {
+    quickUpsell.innerHTML = "";
+    return;
+  }
+
+  const item = getMenuItem(suggestion.itemId);
+  quickUpsell.innerHTML = `
+    <div class="upsell-card">
+      <div class="upsell-copy">
+        <strong>${suggestion.title}</strong>
+        <span>${item.name} - ${money(item.price)} | ${suggestion.detail}</span>
+      </div>
+      <button class="upsell-btn" data-item-id="${item.id}">Add</button>
+    </div>
+  `;
+
+  const button = quickUpsell.querySelector(".upsell-btn");
+  if (button) {
+    button.addEventListener("click", () => {
+      addItemToCart(button.dataset.itemId, 1);
+      toast.textContent = `${item.name} added.`;
+      toast.style.color = "#187e4f";
+      renderMenu();
+      renderCart();
+      renderDailyOffers();
+    });
+  }
 }
 
 function renderCart() {
@@ -308,7 +505,16 @@ function renderCart() {
       cartLines.appendChild(line);
     });
   }
-  cartTotal.textContent = money(cartTotalValue());
+
+  const pricing = computeCartPricing();
+  renderQuickUpsell(pricing);
+  if (pricing.savings > 0) {
+    savingsRow.classList.remove("hidden");
+    cartSavings.textContent = `-${money(pricing.savings)}`;
+  } else {
+    savingsRow.classList.add("hidden");
+    cartSavings.textContent = "-Rs. 0";
+  }
 }
 
 function tableTickets() {
@@ -318,10 +524,11 @@ function tableTickets() {
 }
 
 function ticketItemsSummary(items) {
-  return items
-    .slice(0, 2)
-    .map((line) => `${getMenuItem(line.id).name} x${line.qty}`)
-    .join(", ");
+  const preview = items.slice(0, 2).map((line) => `${getMenuItem(line.id).name} x${line.qty}`);
+  if (items.length > 2) {
+    preview.push(`+${items.length - 2} more`);
+  }
+  return preview.join(", ");
 }
 
 function renderTickets() {
@@ -337,11 +544,15 @@ function renderTickets() {
   ticketList.innerHTML = tickets
     .map((ticket) => {
       const eta = getOrderWaitMins(ticket);
+      const offersText = Array.isArray(ticket.appliedOffers) && ticket.appliedOffers.length
+        ? ticket.appliedOffers.map((offer) => `${offer.title} x${offer.count}`).join(", ")
+        : "";
       return `
         <article class="ticket ${ticket.status}">
           <strong>${ticket.id} - ${ticket.status}</strong>
           <span>Estimated wait: ${eta} min</span>
           <span>${ticketItemsSummary(ticket.items)}</span>
+          ${offersText ? `<span>Offers: ${offersText}</span>` : ""}
         </article>
       `;
     })
@@ -366,22 +577,39 @@ placeBtn.addEventListener("click", () => {
   }
 
   state.orders = loadOrders();
+  const pricing = computeCartPricing();
   const newOrder = {
     id: nextKotId(),
     tableId: state.tableId,
     status: "Queued",
     createdAt: Date.now(),
-    items: Object.entries(state.cart).map(([id, qty]) => ({ id, qty }))
+    items: Object.entries(state.cart).map(([id, qty]) => ({ id, qty })),
+    pricing: {
+      subtotal: pricing.subtotal,
+      discount: pricing.savings,
+      total: pricing.total
+    },
+    appliedOffers: pricing.applications.map((app) => ({
+      offerId: app.offerId,
+      title: app.title,
+      count: app.count,
+      savings: app.savings
+    }))
   };
   state.orders.push(newOrder);
   saveOrders();
   state.cart = {};
   renderMenu();
   renderCart();
+  renderDailyOffers();
   renderTickets();
 
   const eta = getOrderWaitMins(newOrder);
-  toast.textContent = `Order placed (${newOrder.id}). Estimated wait ${eta} min.`;
+  if (pricing.savings > 0) {
+    toast.textContent = `Order placed (${newOrder.id}). ETA ${eta} min. You saved ${money(pricing.savings)}.`;
+  } else {
+    toast.textContent = `Order placed (${newOrder.id}). Estimated wait ${eta} min.`;
+  }
   toast.style.color = "#187e4f";
 });
 
@@ -397,8 +625,8 @@ function init() {
   saveOrders();
   updateUrl();
   renderTop();
-  renderDailyOffers();
   renderCategoryChips();
+  renderDailyOffers();
   renderMenu();
   renderCart();
   renderTickets();

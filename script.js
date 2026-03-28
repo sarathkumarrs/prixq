@@ -113,11 +113,24 @@ function cartTotalValue() {
   }, 0);
 }
 
-function getOrderAmount(order) {
+function getOrderSubtotal(order) {
   return order.items.reduce((sum, line) => {
     const item = getMenuItem(line.id);
     return sum + item.price * line.qty;
   }, 0);
+}
+
+function getOrderDiscount(order) {
+  const discount = Number(order?.pricing?.discount);
+  return Number.isFinite(discount) && discount > 0 ? discount : 0;
+}
+
+function getOrderAmount(order) {
+  const total = Number(order?.pricing?.total);
+  if (Number.isFinite(total) && total >= 0) {
+    return total;
+  }
+  return Math.max(0, getOrderSubtotal(order) - getOrderDiscount(order));
 }
 
 function getOrderWaitMins(order) {
@@ -352,6 +365,9 @@ function renderKotQueue() {
         return `${item.name} x${line.qty}`;
       })
       .join(", ");
+    const offers = Array.isArray(order.appliedOffers) && order.appliedOffers.length
+      ? order.appliedOffers.map((offer) => `${offer.title} x${offer.count}`).join(", ")
+      : "";
     el.innerHTML = `
       <div class="ticket-head">
         <div>
@@ -361,6 +377,7 @@ function renderKotQueue() {
         <strong>${order.status}</strong>
       </div>
       <div class="ticket-items">${lines}</div>
+      ${offers ? `<div class="tiny">Offers: ${offers}</div>` : ""}
       <button class="status-btn">Move Status</button>
     `;
     el.querySelector(".status-btn").addEventListener("click", () => cycleStatus(order.id));
@@ -387,6 +404,35 @@ function tableRunningOrders(tableId) {
   return state.orders.filter((order) => order.tableId === tableId && order.status !== "Paid");
 }
 
+function calculateBillBreakdown(orders) {
+  const merged = {};
+  orders.forEach((order) => {
+    order.items.forEach((line) => {
+      merged[line.id] = (merged[line.id] || 0) + line.qty;
+    });
+  });
+
+  const subtotal = Object.entries(merged).reduce((sum, [itemId, qty]) => {
+    const item = getMenuItem(itemId);
+    return sum + item.price * qty;
+  }, 0);
+
+  const rawDiscount = orders.reduce((sum, order) => sum + getOrderDiscount(order), 0);
+  const discount = Math.min(subtotal, Math.max(0, rawDiscount));
+  const taxableAmount = Math.max(0, subtotal - discount);
+  const tax = Math.round(taxableAmount * 0.05);
+  const total = taxableAmount + tax;
+
+  return {
+    merged,
+    subtotal,
+    discount,
+    taxableAmount,
+    tax,
+    total
+  };
+}
+
 function renderBillingDetails() {
   const tableId = billingTable.value || state.currentTable;
   const orders = tableRunningOrders(tableId);
@@ -395,29 +441,20 @@ function renderBillingDetails() {
     return;
   }
 
-  const merged = {};
-  orders.forEach((order) => {
-    order.items.forEach((line) => {
-      merged[line.id] = (merged[line.id] || 0) + line.qty;
-    });
-  });
-  const subtotal = Object.entries(merged).reduce((sum, [itemId, qty]) => {
-    const item = getMenuItem(itemId);
-    return sum + item.price * qty;
-  }, 0);
-  const tax = Math.round(subtotal * 0.05);
-  const total = subtotal + tax;
+  const bill = calculateBillBreakdown(orders);
 
   billingDetails.innerHTML = `
     <p><strong>${tableId}</strong> | ${orders.length} ticket(s)</p>
-    ${Object.entries(merged)
+    ${Object.entries(bill.merged)
       .map(([itemId, qty]) => {
         const item = getMenuItem(itemId);
         return `<div class="b-line"><span>${item.name} x ${qty}</span><span>${money(item.price * qty)}</span></div>`;
       })
       .join("")}
-    <div class="b-line"><span>GST (5%)</span><span>${money(tax)}</span></div>
-    <div class="total-line"><span>Final Amount</span><span>${money(total)}</span></div>
+    <div class="b-line"><span>Subtotal</span><span>${money(bill.subtotal)}</span></div>
+    ${bill.discount > 0 ? `<div class="b-line"><span>Offer Savings</span><span>-${money(bill.discount)}</span></div>` : ""}
+    <div class="b-line"><span>GST (5%)</span><span>${money(bill.tax)}</span></div>
+    <div class="total-line"><span>Final Amount</span><span>${money(bill.total)}</span></div>
   `;
 }
 
@@ -427,7 +464,8 @@ markPaidBtn.addEventListener("click", () => {
   if (!orders.length) {
     return;
   }
-  const amount = orders.reduce((sum, order) => sum + getOrderAmount(order), 0);
+  const bill = calculateBillBreakdown(orders);
+  const amount = bill.total;
   state.paidBills.unshift({
     tableId,
     ticketCount: orders.length,
