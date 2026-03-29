@@ -108,6 +108,7 @@
       badge: "Most Chosen",
       windowLabel: "All Day",
       dealPrice: 199,
+      image: "images/aldeek-offer1pcs-199.png",
       cta: "Add Deal",
       priority: 1,
       items: [
