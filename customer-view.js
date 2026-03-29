@@ -170,6 +170,54 @@ function offerLineLabel(offer) {
     .join(" + ");
 }
 
+function offerPalette(offerId) {
+  const palettes = [
+    { start: "#7b0f15", end: "#c2242d", accent: "#ffe2b5" },
+    { start: "#125e8a", end: "#1d9bc4", accent: "#c7f2ff" },
+    { start: "#3f5a10", end: "#6f9f17", accent: "#eaf7b5" },
+    { start: "#7a3d0f", end: "#c9741f", accent: "#ffe8bf" }
+  ];
+
+  const codeSum = String(offerId || "")
+    .split("")
+    .reduce((sum, ch) => sum + ch.charCodeAt(0), 0);
+  return palettes[codeSum % palettes.length];
+}
+
+function buildOfferFallbackImage(offer) {
+  const palette = offerPalette(offer.id);
+  const title = (offer.title || "Today Offer").slice(0, 26).replace(/&/g, "and");
+  const badge = (offer.badge || "Special").slice(0, 18).replace(/&/g, "and");
+  const price = money(offer.dealPrice || 0);
+
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+      <defs>
+        <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="${palette.start}" />
+          <stop offset="100%" stop-color="${palette.end}" />
+        </linearGradient>
+      </defs>
+      <rect width="1200" height="630" fill="url(#bg)" />
+      <circle cx="1100" cy="80" r="170" fill="rgba(255,255,255,0.1)" />
+      <circle cx="120" cy="520" r="220" fill="rgba(255,255,255,0.08)" />
+      <rect x="70" y="70" width="380" height="70" rx="35" fill="rgba(255,255,255,0.16)" />
+      <text x="260" y="115" text-anchor="middle" font-size="34" font-family="Arial, sans-serif" fill="#ffffff">${badge}</text>
+      <text x="70" y="300" font-size="78" font-weight="700" font-family="Arial, sans-serif" fill="#ffffff">${title}</text>
+      <text x="70" y="390" font-size="46" font-family="Arial, sans-serif" fill="${palette.accent}">Deal ${price}</text>
+    </svg>
+  `.trim();
+
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+}
+
+function getOfferImage(offer) {
+  if (typeof offer.image === "string" && offer.image.trim()) {
+    return offer.image.trim();
+  }
+  return buildOfferFallbackImage(offer);
+}
+
 function computeCartPricing() {
   const subtotal = Object.entries(state.cart).reduce((sum, [itemId, qty]) => {
     const item = getMenuItem(itemId);
@@ -281,8 +329,13 @@ function renderDailyOffers() {
       const original = getOfferOriginalPrice(offer);
       const save = Math.max(0, original - offer.dealPrice);
       const appliedCount = appliedByOffer[offer.id] || 0;
+      const imageUrl = getOfferImage(offer);
+      const imageAlt = `${offer.title || "Offer"} image`;
       return `
         <article class="offer-item">
+          <div class="offer-media">
+            <img class="offer-image" src="${imageUrl}" alt="${imageAlt}" loading="lazy">
+          </div>
           <div class="offer-head">
             <span class="offer-badge">${offer.badge || "Offer"}</span>
             <span class="offer-window">${offer.windowLabel || "Today"}</span>
