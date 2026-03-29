@@ -57,6 +57,8 @@ const savingsRow = document.getElementById("savingsRow");
 const cartSavings = document.getElementById("cartSavings");
 const placeBtn = document.getElementById("placeBtn");
 const toast = document.getElementById("toast");
+const cartBar = document.querySelector(".cart-bar");
+const phoneShell = document.querySelector(".phone-shell");
 
 const urlParams = new URLSearchParams(window.location.search);
 const urlTable = urlParams.get("table");
@@ -491,20 +493,32 @@ function renderQuickUpsell(pricing) {
 function renderCart() {
   cartLines.innerHTML = "";
   const lines = Object.entries(state.cart);
-  if (!lines.length) {
-    cartLines.innerHTML = `<p class="empty">Cart is empty.</p>`;
-  } else {
-    lines.forEach(([itemId, qty]) => {
-      const item = getMenuItem(itemId);
-      const line = document.createElement("div");
-      line.className = "line";
-      line.innerHTML = `
-        <span>${item.name} x ${qty}</span>
-        <strong>${money(item.price * qty)}</strong>
-      `;
-      cartLines.appendChild(line);
-    });
+  const hasItems = lines.length > 0;
+
+  if (cartBar) {
+    cartBar.classList.toggle("hidden", !hasItems);
   }
+  if (phoneShell) {
+    phoneShell.classList.toggle("cart-collapsed", !hasItems);
+  }
+
+  if (!hasItems) {
+    quickUpsell.innerHTML = "";
+    savingsRow.classList.add("hidden");
+    cartSavings.textContent = "-Rs. 0";
+    return;
+  }
+
+  lines.forEach(([itemId, qty]) => {
+    const item = getMenuItem(itemId);
+    const line = document.createElement("div");
+    line.className = "line";
+    line.innerHTML = `
+      <span>${item.name} x ${qty}</span>
+      <strong>${money(item.price * qty)}</strong>
+    `;
+    cartLines.appendChild(line);
+  });
 
   const pricing = computeCartPricing();
   renderQuickUpsell(pricing);

@@ -33,6 +33,10 @@ body {
   padding: 1rem 0.9rem 11.2rem;
 }
 
+.phone-shell.cart-collapsed {
+  padding-bottom: 1rem;
+}
+
 .hero {
   background: linear-gradient(135deg, var(--brand) 0%, #5c0c10 60%, #471015 100%);
   color: #fff7f6;

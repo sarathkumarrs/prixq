@@ -1,88 +1,114 @@
 Project Understanding Document
-Generated on: 2026-03-28
+Last Updated: 2026-03-29
 
 1) What this project is
-- This is a static frontend demo for a restaurant flow: Table QR -> Customer ordering -> Kitchen Order Ticket (KOT) queue -> Billing by table.
-- It is built with plain HTML, CSS, and vanilla JavaScript (no backend, no framework, no build step).
-- Data persistence is browser-side only using localStorage.
+- This is a static frontend demo for a restaurant workflow:
+  Table QR -> Customer Ordering -> KOT Queue -> Billing.
+- Stack is plain HTML/CSS/JavaScript (no backend, no framework, no build step).
+- Runtime persistence is browser localStorage.
 
 2) Current file map
-- index.html: Main operator demo screen with 3 tabs (Customer simulation, KOT Terminal, Billing Counter).
-- script.js: Core logic for the operator screen (cart, order dispatch, KOT status, billing, paid history, localStorage sync).
-- style.css: Styling for the operator screen.
-- customer.html: Mobile-style customer page opened via table-specific link/query param.
-- customer-view.js: Customer-facing logic (menu selection, place order, offers, ticket status, localStorage sync).
-- customer-view.css: Styling for customer page.
+- index.html: Operator dashboard with 3 tabs (Customer simulation, KOT, Billing).
+- script.js: Operator logic (dispatch, KOT queue, billing, paid history, sync).
+- style.css: Operator styling.
+- customer.html: Customer phone ordering UI.
+- customer-view.js: Customer ordering logic, offers/upsell logic, cart/order sync.
+- customer-view.css: Customer styling.
+- data.js: Shared cafe data model (brand, tables, full menu, offer bundles).
 
-3) Functional flow already built
-A. Customer / QR simulation
-- Table selection supports T1-T4.
-- Each table has a table-specific offer.
-- Menu has 6 items with category, price, and prep-time metadata.
-- Customer can add/remove quantity and place order.
-- New orders are created with status "Queued" and auto-generated ID pattern KOT-XXXX.
+3) Major architecture updates done today (2026-03-29)
+- Added shared data layer:
+  - data.js now drives common data for both operator and customer pages.
+- Replaced small demo menu with ALDEEK menu set from provided posters.
+- Expanded table list to T1-T6 with table-level marketing offers.
+- Redesigned customer UI for a cleaner branded ordering experience.
+- Removed unnecessary customer controls:
+  - Removed table switch from customer view (table now fixed by QR/URL).
+  - Removed demo date field from customer view.
+  - Removed static "Offer for your table..." text from customer hero.
+- Added actionable upsell system in "Today's Offers":
+  - Offer cards are now clickable and can directly add bundled deal items.
+  - Each card shows badge, time window, included items, original vs deal price, and savings.
+- Added cart-side upsell logic:
+  - Quick one-tap recommendation card near checkout.
+- Updated customer cart pricing display behavior:
+  - Subtotal and total are hidden (per product decision).
+  - "Offer Savings" row appears only when an offer discount is applied.
+- Extended order payload structure:
+  - Orders can include pricing snapshot: subtotal/discount/total.
+  - Orders can include appliedOffers metadata.
+- Updated operator KOT + Billing to understand offer data:
+  - KOT ticket can display applied offer labels.
+  - Billing computes subtotal, discount, taxable amount, GST, final total.
+  - Mark-as-paid stores final billed amount.
 
-B. KOT terminal behavior
-- Displays active tickets with statuses: Queued, Preparing, Ready (Paid tickets hidden from KOT queue).
-- "Move Status" cycles status in sequence:
+4) Functional behavior now
+A. Customer ordering
+- Opens as customer.html?table=Tn from operator QR links.
+- Customer sees brand, table id, live offer cards, searchable/sortable menu, categories.
+- Customer can:
+  - add/remove normal items
+  - add deal bundles from offer cards
+  - accept quick upsell suggestion near checkout
+- Cart automatically applies active offer pricing and calculates discount.
+- On place order:
+  - order is saved with status "Queued"
+  - applied offer metadata and pricing snapshot are persisted when relevant
+  - customer sees ETA and savings message (if discount applied)
+
+B. KOT terminal
+- Shows non-paid tickets with statuses:
+  Queued, Preparing, Ready.
+- Status cycle remains:
   Queued -> Preparing -> Ready -> Queued.
-- KOT stats shown:
-  - Active tickets count
-  - Average wait
-  - Next ready candidate
-- ETA is computed from max prep time in ticket + queue position weighting.
+- Queue stats:
+  active tickets, average wait, next ready candidate.
+- Ticket cards can include applied-offer summary.
 
-C. Billing behavior
-- Billing is fetched by table number (select table).
-- Merges all non-paid tickets for selected table into one bill view.
-- Shows itemized totals + GST (5%) + final amount.
-- "Mark As Paid" marks table's active tickets as Paid and stores a paid-bill history entry.
+C. Billing counter
+- Fetch by table number.
+- Merge all active table tickets.
+- Compute and show:
+  itemized lines + subtotal + offer savings (if any) + GST 5% + final amount.
+- Mark-as-paid moves tickets to Paid and stores paid bill history with final amount.
 
-D. Customer phone view behavior
-- Opens with query params, e.g. customer.html?table=T1 and optional ?date=YYYY-MM-DD.
-- Shows table offer + daily/special campaign offers.
-- Shows active ticket count and ticket statuses for selected table.
-- Uses the same orders localStorage key, so customer page and operator page stay in sync across tabs.
-
-4) Data model and persistence
+5) Data model snapshot
+- Shared data source:
+  - window.APP_DATA.brand
+  - window.APP_DATA.tables
+  - window.APP_DATA.menu
+  - window.APP_DATA.offers
 - localStorage keys:
   - kot_demo_orders_v1
   - kot_demo_paid_bills_v1
-- Seed/demo data:
-  - Two default tickets are auto-seeded when storage is empty.
-- Important structures:
-  - Order: { id, tableId, status, createdAt, items: [{id, qty}] }
-  - Paid bill history: { tableId, ticketCount, amount, when }
-- Cross-tab synchronization:
-  - Both pages listen to window.storage events and re-render when storage changes.
+- Order model (current practical shape):
+  - { id, tableId, status, createdAt, items: [{id, qty}], pricing?, appliedOffers? }
+- Paid bill model:
+  - { tableId, ticketCount, amount, when }
 
-5) UX/status of implementation
-- UI is responsive for desktop and mobile breakpoints.
-- Visual system is consistent (same font and color family across both pages).
-- This is a strong demo/prototype stage, not production-ready architecture.
+6) UX state
+- Customer page is now more conversion-oriented:
+  - direct offer actions
+  - clear savings message
+  - reduced cognitive load (removed non-essential controls)
+- Operator page remains functionally aligned with customer-side pricing and offers.
+- Responsive behavior retained for mobile/desktop.
 
-6) Gaps / risks identified
-- No backend/API/database; all data is local to one browser profile.
-- No authentication/roles (any user can access billing/kitchen actions).
-- No real QR generation/scanning integration; QR is simulated UI.
-- No printer/KOT slip output integration.
+7) Known gaps / risks
+- No backend/database/authentication yet.
+- No real QR scanner integration (QR behavior is simulated by table links).
 - No payment gateway integration.
-- No order edit/cancel/split/partial-pay flows.
-- No inventory or kitchen station routing.
-- Billing inconsistency risk:
-  - Billing screen shows GST in final amount,
-  - but paid bill history amount currently stores subtotal-only (without GST).
-- Status loop includes Ready -> Queued, which may be intentional for demo but is operationally unusual.
+- No admin UI yet to edit menu/offers dynamically in-browser (currently in data.js).
+- No analytics pipeline yet for conversion metrics (impressions/clicks/acceptance/AOV).
+- KOT state loop (Ready -> Queued) may not match real kitchen operations.
 
-7) How to run/use now
+8) How to run now
 - Open index.html in a browser.
-- Use "Open Customer View" button to open customer.html for selected table.
-- Place orders from either screen and watch KOT/Billing update via localStorage.
+- Use "Open Customer View" to open customer.html for a table.
+- Place orders and observe KOT/Billing updates via localStorage cross-tab sync.
 
-8) Suggested next build priorities
-1. Introduce a backend (orders, tables, menu, billing) with proper persistence.
-2. Define state transitions with stricter workflow (Queued -> Preparing -> Ready -> Paid, no loop).
-3. Fix billing amount consistency (store and display same final total definition).
-4. Add auth + role-based screens (Customer, Kitchen, Cashier, Admin).
-5. Add order lifecycle features (cancel, merge/split bills, reprint, audit logs).
-6. Add real-time channel (WebSocket/SSE) instead of localStorage events.
+9) Suggested next steps
+1. Build an owner "Menu & Offers Manager" screen to edit data.js content via UI.
+2. Add offer analytics counters (view/click/add/order-using-offer).
+3. Introduce backend + realtime channel (WebSocket/SSE) for true multi-device operation.
+4. Tighten workflow state machine for production-like kitchen flow.
