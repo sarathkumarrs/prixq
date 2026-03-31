@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KOT Terminal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="kot-terminal.css">
+</head>
+<body>
+  <main class="terminal-shell">
+    <header class="terminal-header">
+      <div>
+        <p class="eyebrow">Kitchen Console</p>
+        <h1>KOT Terminal + Auto Print</h1>
+      </div>
+      <div class="header-links">
+        <a class="link-btn" href="index.html" target="_blank" rel="noopener">Operator</a>
+        <a class="link-btn" href="waiter.html" target="_blank" rel="noopener">Waiter</a>
+      </div>
+    </header>
+
+    <section class="panel summary-row">
+      <article class="metric">
+        <span>Queued</span>
+        <strong id="queuedCount">0</strong>
+      </article>
+      <article class="metric">
+        <span>Preparing</span>
+        <strong id="preparingCount">0</strong>
+      </article>
+      <article class="metric">
+        <span>Ready</span>
+        <strong id="readyCount">0</strong>
+      </article>
+      <article class="metric">
+        <span>Pending Print</span>
+        <strong id="pendingPrintCount">0</strong>
+      </article>
+      <article class="metric clock-metric">
+        <span>Live Clock</span>
+        <strong id="liveClock">--:--:--</strong>
+      </article>
+    </section>
+
+    <section class="panel printer-panel">
+      <div class="printer-copy">
+        <h2>Printer Controls</h2>
+        <p id="printerStatus" class="muted">Browser print mode active.</p>
+      </div>
+      <div class="printer-controls">
+        <label class="toggle">
+          <input id="autoPrintToggle" type="checkbox" checked>
+          <span>Auto print new tickets</span>
+        </label>
+        <label class="inline-field">
+          <span>Output</span>
+          <select id="printMode">
+            <option value="browser">Browser Print</option>
+            <option value="serial">Web Serial ESC/POS</option>
+          </select>
+        </label>
+        <button id="connectPrinterBtn" class="btn-secondary" type="button">Connect Printer</button>
+        <button id="testPrintBtn" class="btn-primary" type="button">Test Print</button>
+      </div>
+      <p id="eventFeed" class="event-feed">Terminal ready. Waiting for tickets.</p>
+    </section>
+
+    <section class="columns">
+      <article class="panel col">
+        <div class="col-head">
+          <h2>Incoming</h2>
+          <span id="incomingBadge" class="badge">0</span>
+        </div>
+        <div id="queuedList" class="ticket-list"></div>
+      </article>
+      <article class="panel col">
+        <div class="col-head">
+          <h2>Preparing</h2>
+          <span id="preparingBadge" class="badge">0</span>
+        </div>
+        <div id="preparingList" class="ticket-list"></div>
+      </article>
+      <article class="panel col">
+        <div class="col-head">
+          <h2>Ready To Serve</h2>
+          <span id="readyBadge" class="badge">0</span>
+        </div>
+        <div id="readyList" class="ticket-list"></div>
+      </article>
+    </section>
+  </main>
+
+  <script src="data.js"></script>
+  <script src="kot-terminal.js"></script>
+</body>
+</html>

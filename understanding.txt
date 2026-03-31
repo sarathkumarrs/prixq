@@ -1,5 +1,5 @@
 Project Understanding Document
-Last Updated: 2026-03-29
+Last Updated: 2026-03-30
 
 1) What this project is
 - This is a static frontend demo for a restaurant workflow:
@@ -14,6 +14,9 @@ Last Updated: 2026-03-29
 - customer.html: Customer phone ordering UI.
 - customer-view.js: Customer ordering logic, offers/upsell logic, cart/order sync.
 - customer-view.css: Customer styling.
+- waiter.html: Waiter console UI for table floor operations.
+- waiter.css: Waiter styling.
+- waiter.js: Waiter logic (table states, status update, order-on-behalf, clear-table).
 - data.js: Shared cafe data model (brand, tables, full menu, offer bundles).
 
 3) Major architecture updates done today (2026-03-29)
@@ -112,3 +115,54 @@ C. Billing counter
 2. Add offer analytics counters (view/click/add/order-using-offer).
 3. Introduce backend + realtime channel (WebSocket/SSE) for true multi-device operation.
 4. Tighten workflow state machine for production-like kitchen flow.
+
+10) New waiter module added (2026-03-30)
+- Added dedicated waiter screen:
+  - waiter.html + waiter.css + waiter.js
+  - Mobile-first table-board UI (card grid + bottom sheet interactions)
+- Access:
+  - New "Open Waiter View" button added in index.html top actions.
+- Waiter capabilities:
+  - Live table grid with color states:
+    - Available: no active tickets
+    - Occupied: queued/preparing ticket(s)
+    - Ready: any ready ticket
+  - Tap table card to open bottom sheet:
+    - active tickets
+    - merged bill preview (subtotal, offer savings if any, GST 5%, total)
+  - New-order catalog mode for waiter:
+    - default view shows category cards
+    - toggle allows switching between Categories and Items
+    - Items mode shows full menu grouped by category (customer-view style)
+    - tapping a category card opens item list filtered by that category
+  - Change ticket status directly from waiter screen:
+    - Queued / Preparing / Ready / Paid
+  - Take order on behalf of customer:
+    - search/filter menu, build cart, place new queued ticket with source "waiter"
+  - Clear table for next customer:
+    - marks all active tickets for selected table as Paid
+    - writes paid-bill entry with computed final total
+    - resets that table cart in waiter UI
+- Storage compatibility:
+  - Reuses existing localStorage keys:
+    - kot_demo_orders_v1
+    - kot_demo_paid_bills_v1
+  - Works with current KOT/Billing/Customer pages via storage sync.
+
+11) Session handoff (where we left off)
+- Completed in this session:
+  - Waiter UI was redesigned from desktop-like layout to mobile/tablet-first table-card layout.
+  - Main waiter screen now prioritizes table visibility and tap interactions (matching reference style direction).
+  - Per-table bottom sheet supports:
+    - order status updates
+    - order-on-behalf flow
+    - clear-table action for next customer
+  - New-order tab now uses category-first ordering flow:
+    - default is category cards
+    - waiter can toggle Categories <-> Items
+    - tapping category opens filtered item list
+- Current stable behavior:
+  - Table colors and counts react to live order statuses from shared localStorage.
+  - Waiter actions remain compatible with operator KOT/billing and customer screen.
+- Next likely work item:
+  - Fine-tune waiter table card visual details to match the target mock exactly (icon style, label style, spacing, and floor/zone text conventions).

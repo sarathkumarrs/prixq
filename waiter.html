@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Waiter Floor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="waiter.css">
+</head>
+<body>
+  <main class="waiter-mobile">
+    <header class="app-header">
+      <p class="eyebrow">Service Floor</p>
+      <h1>Tables</h1>
+      <div class="legend-row">
+        <span class="legend available"><i></i> Available</span>
+        <span class="legend occupied"><i></i> Occupied</span>
+        <span class="legend ready"><i></i> Ready</span>
+      </div>
+      <div class="counter-row">
+        <div class="counter-card">
+          <span>Available</span>
+          <strong id="availableCount">0</strong>
+        </div>
+        <div class="counter-card occupied">
+          <span>Occupied</span>
+          <strong id="occupiedCount">0</strong>
+        </div>
+        <div class="counter-card ready">
+          <span>Ready</span>
+          <strong id="readyCount">0</strong>
+        </div>
+      </div>
+    </header>
+
+    <section class="tables-zone">
+      <div id="tableGrid" class="table-grid"></div>
+    </section>
+  </main>
+
+  <div id="sheetBackdrop" class="sheet-backdrop hidden"></div>
+
+  <aside id="tableSheet" class="table-sheet" aria-hidden="true">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <div>
+        <h2 id="tableTitle">Table T1</h2>
+        <p id="tableStateLine" class="sheet-sub">Available</p>
+      </div>
+      <button id="closeSheetBtn" class="sheet-close" type="button">Close</button>
+    </div>
+
+    <div class="sheet-tabs">
+      <button class="tab-btn active" data-tab="orders" type="button">Orders</button>
+      <button class="tab-btn" data-tab="new" type="button">New Order</button>
+    </div>
+
+    <section id="tabOrders" class="sheet-panel active">
+      <div id="tableBillPreview" class="bill-preview"></div>
+      <div class="action-row">
+        <button id="clearTableBtn" class="danger-btn" type="button">Clear Table For Next Customer</button>
+        <a id="customerViewBtn" class="link-btn" href="customer.html?table=T1" target="_blank" rel="noopener">Customer View</a>
+      </div>
+      <div id="ticketList" class="ticket-list"></div>
+    </section>
+
+    <section id="tabNew" class="sheet-panel">
+      <div class="mode-toggle" role="tablist" aria-label="Catalog mode">
+        <button id="modeCategoriesBtn" class="mode-btn active" data-mode="categories" type="button">Categories</button>
+        <button id="modeItemsBtn" class="mode-btn" data-mode="items" type="button">Items</button>
+      </div>
+
+      <div id="categoryCards" class="category-cards"></div>
+
+      <div class="filters">
+        <input id="menuSearch" type="search" placeholder="Search item or category">
+        <select id="categorySelect"></select>
+      </div>
+      <div id="menuList" class="menu-list"></div>
+      <div class="cart-block">
+        <h3>Cart</h3>
+        <div id="cartLines" class="cart-lines"></div>
+        <div class="bill-row">
+          <span>Subtotal</span>
+          <strong id="cartSubtotal">Rs. 0</strong>
+        </div>
+        <button id="placeOrderBtn" class="solid-btn full" type="button">Place Order For Table</button>
+      </div>
+    </section>
+
+    <p id="toast" class="toast"></p>
+  </aside>
+
+  <script src="data.js"></script>
+  <script src="waiter.js"></script>
+</body>
+</html>
