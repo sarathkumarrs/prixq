@@ -26,6 +26,18 @@ body {
     var(--bg);
 }
 
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: env(safe-area-inset-top, 0px);
+  background: var(--bg);
+  pointer-events: none;
+  z-index: 15;
+}
+
 .phone-shell {
   width: min(720px, 100%);
   margin: 0 auto;
@@ -275,7 +287,7 @@ input[type="search"] {
 
 .menu-sticky-controls {
   position: sticky;
-  top: 0;
+  top: env(safe-area-inset-top, 0px);
   z-index: 20;
   background: var(--card);
   padding: 0.2rem 0 0.5rem;
