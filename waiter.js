@@ -21,11 +21,18 @@ const TABLES = Array.isArray(window.APP_DATA?.tables) && window.APP_DATA.tables.
 const MENU = Array.isArray(window.APP_DATA?.menu) && window.APP_DATA.menu.length
   ? window.APP_DATA.menu
   : FALLBACK_MENU;
+const COMMON_OFFER_TEXT = typeof window.APP_DATA?.commonOfferText === "string" && window.APP_DATA.commonOfferText.trim()
+  ? window.APP_DATA.commonOfferText.trim()
+  : "Today's live offers apply for all tables.";
 
 const STORAGE_KEYS = {
   orders: "kot_demo_orders_v1",
   paidBills: "kot_demo_paid_bills_v1"
 };
+const KOT_CONFIG = window.APP_DATA?.kot || {};
+const WAITER_READY_AUDIO_SRC = typeof KOT_CONFIG.waiterReadyAudio === "string" && KOT_CONFIG.waiterReadyAudio.trim()
+  ? KOT_CONFIG.waiterReadyAudio.trim()
+  : "waiter_conf.wav";
 
 const DEFAULT_ORDERS = [];
 const STATUS_OPTIONS = ["Queued", "Preparing", "Ready", "Paid"];
@@ -59,7 +66,8 @@ const state = {
   activeCategory: "All",
   carts: {},
   orders: loadStoredArray(STORAGE_KEYS.orders, DEFAULT_ORDERS),
-  paidBills: loadStoredArray(STORAGE_KEYS.paidBills, [])
+  paidBills: loadStoredArray(STORAGE_KEYS.paidBills, []),
+  alertAudio: null
 };
 
 const tableGrid = document.getElementById("tableGrid");
@@ -104,6 +112,48 @@ function persistState() {
   saveStoredArray(STORAGE_KEYS.paidBills, state.paidBills);
 }
 
+function ensureReadyAlertAudio() {
+  if (state.alertAudio) {
+    return state.alertAudio;
+  }
+  try {
+    const audio = new Audio(WAITER_READY_AUDIO_SRC);
+    audio.preload = "auto";
+    state.alertAudio = audio;
+    return audio;
+  } catch (error) {
+    return null;
+  }
+}
+
+function findReadyTransitions(previousOrders, nextOrders) {
+  const previousById = new Map(previousOrders.map((order) => [order.id, order.status]));
+  return nextOrders.filter((order) => {
+    if (order.status !== "Ready") {
+      return false;
+    }
+    return previousById.get(order.id) !== "Ready";
+  });
+}
+
+function playReadyAlert(readyTransitions) {
+  if (!Array.isArray(readyTransitions) || !readyTransitions.length) {
+    return;
+  }
+  const baseAudio = ensureReadyAlertAudio();
+  if (!baseAudio) {
+    return;
+  }
+  const count = Math.min(2, readyTransitions.length);
+  for (let index = 0; index < count; index += 1) {
+    const clip = baseAudio.cloneNode(true);
+    clip.volume = 1;
+    window.setTimeout(() => {
+      clip.play().catch(() => {});
+    }, index * 380);
+  }
+}
+
 function ensureCart(tableId) {
   if (!state.carts[tableId]) {
     state.carts[tableId] = {};
@@ -144,7 +194,7 @@ function getTableState(tableId) {
 }
 
 function getTableOffer(tableId) {
-  return TABLES.find((table) => table.id === tableId)?.offer || "No table offer configured.";
+  return COMMON_OFFER_TEXT;
 }
 
 function formatAge(createdAt) {
@@ -462,12 +512,14 @@ function closeSheet() {
 }
 
 function updateOrderStatus(orderId, nextStatus) {
+  const previousOrders = clone(state.orders);
   const order = state.orders.find((entry) => entry.id === orderId);
   if (!order) {
     return;
   }
   order.status = nextStatus;
   persistState();
+  playReadyAlert(findReadyTransitions(previousOrders, state.orders));
   setToast(`Updated ${order.id} to ${nextStatus}.`);
   renderCounts();
   renderTableGrid();
@@ -653,8 +705,10 @@ window.addEventListener("storage", (event) => {
   if (event.key !== STORAGE_KEYS.orders && event.key !== STORAGE_KEYS.paidBills) {
     return;
   }
+  const previousOrders = clone(state.orders);
   state.orders = loadStoredArray(STORAGE_KEYS.orders, DEFAULT_ORDERS);
   state.paidBills = loadStoredArray(STORAGE_KEYS.paidBills, []);
+  playReadyAlert(findReadyTransitions(previousOrders, state.orders));
   renderCounts();
   renderTableGrid();
   if (tableSheet.classList.contains("open")) {
@@ -664,6 +718,7 @@ window.addEventListener("storage", (event) => {
 
 function init() {
   ensureCart(state.selectedTableId);
+  ensureReadyAlertAudio();
   renderCategoryOptions();
   renderCounts();
   renderTableGrid();

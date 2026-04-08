@@ -125,6 +125,34 @@ input[type="search"] {
   color: var(--muted);
 }
 
+.active-order-pill {
+  border: 1px solid #dfc3b7;
+  background: #fff6f1;
+  color: #7a2628;
+  border-radius: 999px;
+  padding: 0.28rem 0.56rem;
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.active-order-pill:hover {
+  background: #fdebe1;
+}
+
+.active-order-pill:focus-visible {
+  outline: 2px solid #c94b4f;
+  outline-offset: 2px;
+}
+
+.section.ticket-focus {
+  border-color: #d96b4f;
+  box-shadow: 0 0 0 2px #f7d5c7, 0 7px 16px rgba(56, 28, 18, 0.06);
+  transition: box-shadow 0.35s ease, border-color 0.35s ease;
+}
+
 .offer-list {
   display: grid;
   gap: 0.55rem;
@@ -245,12 +273,31 @@ input[type="search"] {
   margin-bottom: 0.56rem;
 }
 
+.menu-sticky-controls {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--card);
+  padding: 0.2rem 0 0.5rem;
+  margin-bottom: 0.62rem;
+  border-bottom: 1px solid #f1e5de;
+}
+
+.menu-sticky-controls .filters {
+  margin-bottom: 0.42rem;
+}
+
 .chip-row {
   display: flex;
   gap: 0.4rem;
   overflow: auto;
   padding-bottom: 0.3rem;
   margin-bottom: 0.6rem;
+}
+
+.menu-sticky-controls .chip-row {
+  margin-bottom: 0;
+  padding-bottom: 0.2rem;
 }
 
 .chip {

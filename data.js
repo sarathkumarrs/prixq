@@ -161,14 +161,86 @@
     }
   ];
 
-  window.APP_DATA = {
+  const defaultData = {
     brand: {
       name: "ALDEEK Container Cafe",
       area: "Bypass Road, Anchal",
       phone: "8891141064, 9747961384"
     },
+    commonOfferText: "Today's live offers apply for all tables.",
     tables,
     menu,
-    offers
+    offers,
+    kot: {
+      queueAckTargetMins: 2,
+      autoPrintDefault: true,
+      soundAlertsDefault: true,
+      orderAlertAudio: "notification_tune.wav",
+      waiterReadyAudio: "waiter_conf.wav"
+    }
   };
+
+  const ADMIN_STORAGE_KEY = "kot_demo_admin_config_v1";
+
+  function clone(value) {
+    return JSON.parse(JSON.stringify(value));
+  }
+
+  function isObject(value) {
+    return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+  }
+
+  function loadAdminOverrides() {
+    try {
+      const raw = localStorage.getItem(ADMIN_STORAGE_KEY);
+      if (!raw) {
+        return {};
+      }
+      const parsed = JSON.parse(raw);
+      return isObject(parsed) ? parsed : {};
+    } catch (error) {
+      return {};
+    }
+  }
+
+  function mergedData(baseData, overrides) {
+    const src = isObject(overrides) ? overrides : {};
+    const merged = clone(baseData);
+
+    if (isObject(src.brand)) {
+      merged.brand = {
+        ...merged.brand,
+        ...src.brand
+      };
+    }
+
+    if (typeof src.commonOfferText === "string") {
+      merged.commonOfferText = src.commonOfferText;
+    }
+
+    if (Array.isArray(src.tables) && src.tables.length) {
+      merged.tables = clone(src.tables);
+    }
+
+    if (Array.isArray(src.menu) && src.menu.length) {
+      merged.menu = clone(src.menu);
+    }
+
+    if (Array.isArray(src.offers)) {
+      merged.offers = clone(src.offers);
+    }
+
+    if (isObject(src.kot)) {
+      merged.kot = {
+        ...merged.kot,
+        ...src.kot
+      };
+    }
+
+    return merged;
+  }
+
+  const adminOverrides = loadAdminOverrides();
+  window.APP_DEFAULT_DATA = clone(defaultData);
+  window.APP_DATA = mergedData(defaultData, adminOverrides);
 })();

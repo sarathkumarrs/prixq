@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Configuration</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+  <main class="admin-app">
+    <aside class="sidebar">
+      <div class="brand-block">
+        <p class="eyebrow">QR Menu</p>
+        <h1>Admin Panel</h1>
+        <p class="subtext">Manage your restaurant setup</p>
+      </div>
+
+      <nav class="side-nav">
+        <button class="nav-btn active" type="button" data-section="dashboard">Dashboard</button>
+        <button class="nav-btn" type="button" data-section="restaurant">Restaurant</button>
+        <button class="nav-btn" type="button" data-section="tables">Tables</button>
+        <button class="nav-btn" type="button" data-section="kot">KOT Config</button>
+        <button class="nav-btn" type="button" data-section="menu">Menu Items</button>
+        <button class="nav-btn" type="button" data-section="offers">Offers</button>
+        <button class="nav-btn" type="button" data-section="json">JSON Tools</button>
+      </nav>
+
+      <div class="sidebar-links">
+        <a class="link-btn" href="index.html" target="_blank" rel="noopener">Open Operator</a>
+        <a class="link-btn" href="kot-terminal.html" target="_blank" rel="noopener">Open KOT</a>
+        <a class="link-btn" href="waiter.html" target="_blank" rel="noopener">Open Waiter</a>
+      </div>
+    </aside>
+
+    <section class="workspace">
+      <header class="workspace-head card">
+        <div>
+          <p class="eyebrow">Owner Console</p>
+          <h2 id="sectionTitle">Dashboard</h2>
+          <p id="statusText" class="status">Ready.</p>
+        </div>
+        <div class="head-actions">
+          <button id="saveConfigBtn" class="primary-btn" type="button">Save Configuration</button>
+        </div>
+      </header>
+
+      <section id="panel-dashboard" class="card section-panel active">
+        <div class="section-head">
+          <h3>Quick Summary</h3>
+        </div>
+        <div class="stats-grid">
+          <article class="stat-card">
+            <span>Tables</span>
+            <strong id="dashboardTableCount">0</strong>
+          </article>
+          <article class="stat-card">
+            <span>Menu Items</span>
+            <strong id="dashboardMenuCount">0</strong>
+          </article>
+          <article class="stat-card">
+            <span>Categories</span>
+            <strong id="dashboardCategoryCount">0</strong>
+          </article>
+          <article class="stat-card">
+            <span>Offers</span>
+            <strong id="dashboardOfferCount">0</strong>
+          </article>
+          <article class="stat-card">
+            <span>Queue Target</span>
+            <strong id="dashboardQueueTarget">0 min</strong>
+          </article>
+        </div>
+        <p class="hint">Use the left menu to edit each module. Save applies changes to localStorage admin config.</p>
+      </section>
+
+      <section id="panel-restaurant" class="card section-panel">
+        <h3>Restaurant Profile</h3>
+        <div class="grid-3">
+          <label>
+            <span>Name</span>
+            <input id="brandNameInput" type="text" placeholder="Restaurant name">
+          </label>
+          <label>
+            <span>Area</span>
+            <input id="brandAreaInput" type="text" placeholder="Area / address">
+          </label>
+          <label>
+            <span>Phone</span>
+            <input id="brandPhoneInput" type="text" placeholder="Contact number(s)">
+          </label>
+        </div>
+        <label class="single-field">
+          <span>Common Offer Segment (all tables)</span>
+          <input id="commonOfferInput" type="text" placeholder="Example: Fried Chicken Combo starts at Rs. 149.">
+        </label>
+      </section>
+
+      <section id="panel-tables" class="card section-panel">
+        <div class="section-head">
+          <h3>Tables</h3>
+          <button id="addTableBtn" class="secondary-btn" type="button">Add Table</button>
+        </div>
+        <p class="hint">Per-table QR preview (dummy image). Backend can replace this with dynamic QR generation later.</p>
+        <div id="tableRows" class="list-grid"></div>
+      </section>
+
+      <section id="panel-kot" class="card section-panel">
+        <h3>KOT Configuration</h3>
+        <div class="grid-3">
+          <label>
+            <span>Queue Acknowledge Target (min)</span>
+            <input id="queueAckTargetInput" type="number" min="1" step="1">
+          </label>
+          <label>
+            <span>Order Alert Audio File</span>
+            <input id="orderAlertAudioInput" type="text" placeholder="notification_tune.wav">
+          </label>
+          <label>
+            <span>Waiter Ready Audio File</span>
+            <input id="waiterReadyAudioInput" type="text" placeholder="waiter_conf.wav">
+          </label>
+        </div>
+        <div class="toggle-row">
+          <label class="toggle">
+            <input id="autoPrintDefaultInput" type="checkbox">
+            <span>Auto-print enabled by default</span>
+          </label>
+          <label class="toggle">
+            <input id="soundAlertsDefaultInput" type="checkbox">
+            <span>Sound alerts enabled by default</span>
+          </label>
+        </div>
+      </section>
+
+      <section id="panel-menu" class="card section-panel">
+        <div class="section-head">
+          <h3>Menu: Categories > Items</h3>
+        </div>
+        <p class="hint">Create categories first, then add items under those categories.</p>
+        <div class="menu-layout">
+          <article class="menu-pane">
+            <div class="pane-head">
+              <h4>Categories</h4>
+              <button id="addMenuCategoryBtn" class="secondary-btn" type="button">Add Category</button>
+            </div>
+            <div id="menuCategoryRows" class="list-grid"></div>
+          </article>
+          <article class="menu-pane">
+            <div class="pane-head">
+              <h4>Items</h4>
+              <button id="addMenuBtn" class="secondary-btn" type="button">Add Item</button>
+            </div>
+            <div id="menuRows" class="list-grid"></div>
+          </article>
+        </div>
+      </section>
+
+      <section id="panel-offers" class="card section-panel">
+        <div class="section-head">
+          <h3>Offers</h3>
+          <button id="addOfferBtn" class="secondary-btn" type="button">Add Offer</button>
+        </div>
+        <p class="hint">Offer bundle format: <code>ITEM_ID:QTY,ITEM_ID:QTY</code></p>
+        <div id="offerRows" class="list-grid"></div>
+      </section>
+
+      <section id="panel-json" class="card section-panel">
+        <div class="section-head">
+          <h3>JSON Tools</h3>
+          <div class="tool-actions">
+            <button id="exportJsonBtn" class="secondary-btn" type="button">Export JSON</button>
+            <button id="applyJsonBtn" class="secondary-btn" type="button">Apply JSON</button>
+            <button id="resetDefaultsBtn" class="danger-btn" type="button">Reset Defaults</button>
+          </div>
+        </div>
+        <textarea id="jsonEditor" rows="14" spellcheck="false" placeholder="Config JSON appears here..."></textarea>
+        <div class="json-actions">
+          <button id="saveConfigBtnBottom" class="primary-btn" type="button">Save Configuration</button>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script src="data.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>

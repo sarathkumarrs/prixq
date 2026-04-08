@@ -21,6 +21,9 @@ const TABLES = Array.isArray(window.APP_DATA?.tables) && window.APP_DATA.tables.
 const MENU = Array.isArray(window.APP_DATA?.menu) && window.APP_DATA.menu.length
   ? window.APP_DATA.menu
   : FALLBACK_MENU;
+const COMMON_OFFER_TEXT = typeof window.APP_DATA?.commonOfferText === "string" && window.APP_DATA.commonOfferText.trim()
+  ? window.APP_DATA.commonOfferText.trim()
+  : "Today's live offers apply for all tables.";
 
 const STORAGE_KEYS = {
   orders: "kot_demo_orders_v1",
@@ -205,10 +208,7 @@ function renderCustomerLink() {
 }
 
 function renderOffer() {
-  const selected = TABLES.find((t) => t.id === state.currentTable) || {
-    id: state.currentTable,
-    offer: "No table-specific offer configured."
-  };
+  const selected = TABLES.find((t) => t.id === state.currentTable) || { id: state.currentTable };
   const today = new Date();
   const label = today.toLocaleDateString("en-IN", {
     weekday: "short",
@@ -218,7 +218,7 @@ function renderOffer() {
   const dailyOffers = getDailyOfferSet(today);
   tableOffer.innerHTML = `
     <strong>${selected.id} Active</strong>
-    <p>${selected.offer}</p>
+    <p>${COMMON_OFFER_TEXT}</p>
     <p class="tiny">Today's Campaign (${label})</p>
     <ul class="offer-mini-list">
       ${dailyOffers.map((offer) => `<li>${offer}</li>`).join("")}

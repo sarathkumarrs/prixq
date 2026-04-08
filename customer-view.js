@@ -50,6 +50,7 @@ const sortSelect = document.getElementById("sortSelect");
 const categoryChips = document.getElementById("categoryChips");
 const menuList = document.getElementById("menuList");
 const ticketList = document.getElementById("ticketList");
+const ticketSection = document.getElementById("ticketSection");
 const activeOrderCount = document.getElementById("activeOrderCount");
 const cartLines = document.getElementById("cartLines");
 const quickUpsell = document.getElementById("quickUpsell");
@@ -72,6 +73,8 @@ const state = {
   cart: {},
   orders: loadOrders()
 };
+
+let ticketFocusTimer = null;
 
 function loadOrders() {
   try {
@@ -602,6 +605,8 @@ function renderTickets() {
   const tickets = tableTickets();
   const activeCount = tickets.filter((ticket) => ticket.status === "Queued" || ticket.status === "Preparing").length;
   activeOrderCount.textContent = `${activeCount} Active Orders`;
+  activeOrderCount.setAttribute("aria-label", `${activeCount} active orders. View ticket status`);
+  activeOrderCount.title = "View ticket status";
 
   if (!tickets.length) {
     ticketList.innerHTML = `<p class="empty">No tickets yet for this table.</p>`;
@@ -626,6 +631,20 @@ function renderTickets() {
     .join("");
 }
 
+function jumpToTicketStatus() {
+  if (!ticketSection) {
+    return;
+  }
+  ticketSection.scrollIntoView({ behavior: "smooth", block: "start" });
+  ticketSection.classList.add("ticket-focus");
+  if (ticketFocusTimer) {
+    window.clearTimeout(ticketFocusTimer);
+  }
+  ticketFocusTimer = window.setTimeout(() => {
+    ticketSection.classList.remove("ticket-focus");
+  }, 1300);
+}
+
 menuSearch.addEventListener("input", (event) => {
   state.searchTerm = event.target.value.trim();
   renderMenu();
@@ -635,6 +654,8 @@ sortSelect.addEventListener("change", (event) => {
   state.sort = event.target.value;
   renderMenu();
 });
+
+activeOrderCount.addEventListener("click", jumpToTicketStatus);
 
 placeBtn.addEventListener("click", () => {
   if (!Object.keys(state.cart).length) {

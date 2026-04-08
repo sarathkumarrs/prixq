@@ -1,5 +1,5 @@
 Project Understanding Document
-Last Updated: 2026-03-30
+Last Updated: 2026-03-31
 
 1) What this project is
 - This is a static frontend demo for a restaurant workflow:
@@ -17,6 +17,9 @@ Last Updated: 2026-03-30
 - waiter.html: Waiter console UI for table floor operations.
 - waiter.css: Waiter styling.
 - waiter.js: Waiter logic (table states, status update, order-on-behalf, clear-table).
+- kot-terminal.html: Dedicated kitchen terminal screen (live queue + printer controls).
+- kot-terminal.css: Kitchen terminal styling.
+- kot-terminal.js: Kitchen queue logic + auto-print pipeline + print registry.
 - data.js: Shared cafe data model (brand, tables, full menu, offer bundles).
 
 3) Major architecture updates done today (2026-03-29)
@@ -84,6 +87,8 @@ C. Billing counter
 - localStorage keys:
   - kot_demo_orders_v1
   - kot_demo_paid_bills_v1
+  - kot_demo_print_registry_v1 (new KOT terminal print history per ticket)
+  - kot_terminal_settings_v1 (auto-print and print mode preferences)
 - Order model (current practical shape):
   - { id, tableId, status, createdAt, items: [{id, qty}], pricing?, appliedOffers? }
 - Paid bill model:
@@ -108,6 +113,7 @@ C. Billing counter
 8) How to run now
 - Open index.html in a browser.
 - Use "Open Customer View" to open customer.html for a table.
+- Use "Open KOT Terminal" for dedicated kitchen flow and print controls.
 - Place orders and observe KOT/Billing updates via localStorage cross-tab sync.
 
 9) Suggested next steps
@@ -166,3 +172,24 @@ C. Billing counter
   - Waiter actions remain compatible with operator KOT/billing and customer screen.
 - Next likely work item:
   - Fine-tune waiter table card visual details to match the target mock exactly (icon style, label style, spacing, and floor/zone text conventions).
+
+12) New KOT terminal module added (2026-03-31)
+- Added dedicated KOT terminal screen:
+  - kot-terminal.html + kot-terminal.css + kot-terminal.js
+  - New "Open KOT Terminal" button in index.html top actions.
+- Kitchen-first behavior:
+  - 3 live queue columns: Queued, Preparing, Ready.
+  - Per-ticket quick actions for status transitions.
+  - Per-ticket Print/Reprint controls.
+  - Live summary counters for queue and pending print tickets.
+- Printing behavior:
+  - Auto-print mode for newly received (unprinted) tickets.
+  - Manual test print action.
+  - Browser Print mode (default) with thermal-ticket layout.
+  - Optional Web Serial mode for ESC/POS style printer output when supported.
+  - Print history tracked per order to avoid repeated auto-print loops.
+- Compatibility:
+  - Reuses kot_demo_orders_v1 so it stays in sync with customer/operator/waiter modules.
+  - No backend dependency added; still pure frontend + localStorage.
+- Practical constraint:
+  - Fully silent thermal printing depends on OS/browser kiosk/default-printer setup or a local print bridge service.

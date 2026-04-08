@@ -22,12 +22,20 @@ const STORAGE_KEYS = {
   printRegistry: "kot_demo_print_registry_v1"
 };
 
+const KOT_CONFIG = window.APP_DATA?.kot || {};
 const SETTINGS_KEY = "kot_terminal_settings_v1";
+const ORDER_ALERT_AUDIO_SRC = typeof KOT_CONFIG.orderAlertAudio === "string" && KOT_CONFIG.orderAlertAudio.trim()
+  ? KOT_CONFIG.orderAlertAudio.trim()
+  : "notification_tune.wav";
+const QUEUE_ACK_TARGET_MINS = Number.isFinite(Number(KOT_CONFIG.queueAckTargetMins)) && Number(KOT_CONFIG.queueAckTargetMins) > 0
+  ? Math.round(Number(KOT_CONFIG.queueAckTargetMins))
+  : 2;
 
 const DEFAULT_ORDERS = [];
 const DEFAULT_SETTINGS = {
-  autoPrint: true,
-  printMode: "browser"
+  autoPrint: KOT_CONFIG.autoPrintDefault !== false,
+  printMode: "browser",
+  soundAlerts: KOT_CONFIG.soundAlertsDefault !== false
 };
 
 const state = {
@@ -36,7 +44,8 @@ const state = {
   settings: loadSettings(),
   serialPort: null,
   printing: false,
-  knownOrderIds: new Set()
+  knownOrderIds: new Set(),
+  alertAudio: null
 };
 
 const queuedCount = document.getElementById("queuedCount");
@@ -51,11 +60,18 @@ const queuedList = document.getElementById("queuedList");
 const preparingList = document.getElementById("preparingList");
 const readyList = document.getElementById("readyList");
 const autoPrintToggle = document.getElementById("autoPrintToggle");
+const soundAlertToggle = document.getElementById("soundAlertToggle");
 const printModeSelect = document.getElementById("printMode");
 const connectPrinterBtn = document.getElementById("connectPrinterBtn");
 const testPrintBtn = document.getElementById("testPrintBtn");
 const printerStatus = document.getElementById("printerStatus");
 const eventFeed = document.getElementById("eventFeed");
+const soloPrepPanel = document.getElementById("soloPrepPanel");
+const soloPrepBadge = document.getElementById("soloPrepBadge");
+const soloPrepOrder = document.getElementById("soloPrepOrder");
+const soloPrepElapsed = document.getElementById("soloPrepElapsed");
+const soloPrepTarget = document.getElementById("soloPrepTarget");
+const soloPrepRemaining = document.getElementById("soloPrepRemaining");
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
@@ -91,7 +107,8 @@ function loadSettings() {
   const stored = loadStoredObject(SETTINGS_KEY, DEFAULT_SETTINGS);
   return {
     autoPrint: stored.autoPrint !== false,
-    printMode: stored.printMode === "serial" ? "serial" : "browser"
+    printMode: stored.printMode === "serial" ? "serial" : "browser",
+    soundAlerts: stored.soundAlerts !== false
   };
 }
 
@@ -174,6 +191,102 @@ function listActiveOrders() {
     .sort((a, b) => Number(a.createdAt || 0) - Number(b.createdAt || 0));
 }
 
+function normalizeOrderTimers(order) {
+  if (!order || typeof order !== "object") {
+    return false;
+  }
+  let changed = false;
+  const now = Date.now();
+  if (!Number.isFinite(Number(order.createdAt))) {
+    order.createdAt = now;
+    changed = true;
+  }
+  if (!Number.isFinite(Number(order.queuedAt))) {
+    order.queuedAt = Number(order.createdAt);
+    changed = true;
+  }
+  if (order.status === "Preparing" && !Number.isFinite(Number(order.prepStartedAt))) {
+    order.prepStartedAt = Number(order.createdAt);
+    changed = true;
+  }
+  return changed;
+}
+
+function normalizeAllOrders(orders) {
+  let changed = false;
+  orders.forEach((order) => {
+    changed = normalizeOrderTimers(order) || changed;
+  });
+  return changed;
+}
+
+function prepTargetMinutes(order) {
+  const prepWeights = Array.isArray(order?.items)
+    ? order.items.map((line) => {
+      const item = getMenuItem(line.id);
+      return Number(item.prep) || 0;
+    })
+    : [];
+  return Math.max(4, ...prepWeights, 8);
+}
+
+function prepTimerMeta(order, now = Date.now()) {
+  if (!order || order.status !== "Preparing") {
+    return null;
+  }
+  const startAt = Number(order.prepStartedAt) || Number(order.createdAt) || now;
+  const targetMs = prepTargetMinutes(order) * 60000;
+  const elapsedMs = Math.max(0, now - startAt);
+  const remainingMs = targetMs - elapsedMs;
+  const overdue = remainingMs < 0;
+  const clockValue = formatDurationMs(overdue ? Math.abs(remainingMs) : remainingMs);
+  const label = overdue
+    ? `Prep timer: +${clockValue} overdue`
+    : `Prep timer: ${clockValue} left`;
+
+  return {
+    overdue,
+    label,
+    elapsedMs,
+    remainingMs,
+    targetMins: prepTargetMinutes(order)
+  };
+}
+
+function queueTimerMeta(order, now = Date.now()) {
+  if (!order || order.status !== "Queued") {
+    return null;
+  }
+  const queuedAt = Number(order.queuedAt) || Number(order.createdAt) || now;
+  const elapsedMs = Math.max(0, now - queuedAt);
+  const targetMs = QUEUE_ACK_TARGET_MINS * 60000;
+  const remainingMs = targetMs - elapsedMs;
+  const overdue = remainingMs < 0;
+  const clockValue = formatDurationMs(overdue ? Math.abs(remainingMs) : remainingMs);
+
+  return {
+    overdue,
+    elapsedMs,
+    remainingMs,
+    targetMins: QUEUE_ACK_TARGET_MINS,
+    label: overdue
+      ? `Queue wait: +${clockValue} over acknowledge target`
+      : `Queue wait: ${clockValue} to acknowledge`
+  };
+}
+
+function formatDurationMs(ms) {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const seconds = total % 60;
+
+  if (hours > 0) {
+    return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  }
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+}
+
 function isPrinted(orderId) {
   const row = state.printRegistry[orderId];
   return Boolean(row && Number(row.count) > 0);
@@ -224,6 +337,7 @@ function updateSummary() {
 }
 
 function renderStatusColumn(status, holder) {
+  const now = Date.now();
   const tickets = listActiveOrders().filter((order) => order.status === status);
   if (!tickets.length) {
     holder.innerHTML = `<p class="empty">No ${status.toLowerCase()} tickets.</p>`;
@@ -242,12 +356,13 @@ function renderStatusColumn(status, holder) {
       const printLabel = isPrinted(order.id) ? "Reprint" : "Print";
       const source = order.source ? `Source: ${escapeHtml(order.source)}` : "Source: customer";
       const offerLine = offersLabel(order);
+      const prepMeta = prepTimerMeta(order, now);
+      const queueMeta = queueTimerMeta(order, now);
 
       let statusActions = "";
       if (status === "Queued") {
         statusActions = `
-          <button class="mini-btn" type="button" data-next-status="Preparing" data-order-id="${order.id}">Start Prep</button>
-          <button class="mini-btn" type="button" data-next-status="Ready" data-order-id="${order.id}">Mark Ready</button>
+          <button class="mini-btn" type="button" data-next-status="Preparing" data-order-id="${order.id}" title="Move this ticket to Preparing">Start Prep</button>
         `;
       } else if (status === "Preparing") {
         statusActions = `
@@ -268,6 +383,8 @@ function renderStatusColumn(status, holder) {
             <span class="order-meta">${formatAge(order.createdAt)}</span>
           </div>
           <ul class="item-lines">${itemLines}</ul>
+          ${queueMeta ? `<div class="queue-line ${queueMeta.overdue ? "overdue" : ""}" data-queue-timer="${order.id}">${queueMeta.label}</div>` : ""}
+          ${prepMeta ? `<div class="prep-line ${prepMeta.overdue ? "overdue" : ""}" data-prep-timer="${order.id}">${prepMeta.label}</div>` : ""}
           <div class="order-meta">${source}</div>
           ${offerLine ? `<div class="offer-line">Offers: ${escapeHtml(offerLine)}</div>` : ""}
           <div class="print-line">${printMeta(order.id)}</div>
@@ -281,21 +398,109 @@ function renderStatusColumn(status, holder) {
     .join("");
 }
 
+function renderSoloPrepPanel() {
+  const active = listActiveOrders();
+  if (active.length !== 1) {
+    soloPrepPanel.classList.add("hidden");
+    return;
+  }
+
+  const order = active[0];
+  const now = Date.now();
+  const prepMeta = prepTimerMeta(order, now);
+  const queueMeta = queueTimerMeta(order, now);
+  if (!prepMeta && !queueMeta) {
+    soloPrepPanel.classList.add("hidden");
+    return;
+  }
+
+  const meta = prepMeta || queueMeta;
+  const isPrep = Boolean(prepMeta);
+  soloPrepPanel.classList.remove("hidden");
+  soloPrepPanel.classList.toggle("overdue", meta.overdue);
+  soloPrepPanel.classList.toggle("ontrack", !meta.overdue);
+  soloPrepOrder.textContent = `${order.id} | Table ${order.tableId}`;
+  soloPrepElapsed.textContent = formatDurationMs(meta.elapsedMs);
+  soloPrepTarget.textContent = `${meta.targetMins} min`;
+  soloPrepRemaining.textContent = meta.overdue
+    ? `+${formatDurationMs(Math.abs(meta.remainingMs))}`
+    : formatDurationMs(meta.remainingMs);
+  if (meta.overdue) {
+    soloPrepBadge.textContent = isPrep
+      ? "Prep overdue - expedite now"
+      : "Queue overdue - start prep now";
+  } else {
+    soloPrepBadge.textContent = isPrep
+      ? "Single active order (Preparing)"
+      : "Single active order (Queued)";
+  }
+}
+
+function updateVisiblePrepTimers() {
+  const now = Date.now();
+  document.querySelectorAll("[data-queue-timer]").forEach((node) => {
+    const orderId = node.getAttribute("data-queue-timer");
+    const order = state.orders.find((entry) => entry.id === orderId);
+    const meta = queueTimerMeta(order, now);
+    if (!meta) {
+      return;
+    }
+    node.textContent = meta.label;
+    node.classList.toggle("overdue", meta.overdue);
+  });
+  document.querySelectorAll("[data-prep-timer]").forEach((node) => {
+    const orderId = node.getAttribute("data-prep-timer");
+    const order = state.orders.find((entry) => entry.id === orderId);
+    const meta = prepTimerMeta(order, now);
+    if (!meta) {
+      return;
+    }
+    node.textContent = meta.label;
+    node.classList.toggle("overdue", meta.overdue);
+  });
+  renderSoloPrepPanel();
+}
+
 function renderAll() {
   updateSummary();
   renderStatusColumn("Queued", queuedList);
   renderStatusColumn("Preparing", preparingList);
   renderStatusColumn("Ready", readyList);
+  renderSoloPrepPanel();
   updatePrinterPanel();
 }
 
 function setOrderStatus(orderId, nextStatus) {
   const latestOrders = loadStoredArray(STORAGE_KEYS.orders, DEFAULT_ORDERS);
+  normalizeAllOrders(latestOrders);
   const target = latestOrders.find((order) => order.id === orderId);
   if (!target) {
     updateEventFeed(`Could not find ticket ${orderId}.`, "error");
     return;
   }
+  const now = Date.now();
+  if (!Number.isFinite(Number(target.queuedAt))) {
+    target.queuedAt = Number(target.createdAt) || now;
+  }
+
+  if (nextStatus === "Queued") {
+    target.queuedAt = now;
+    target.prepStartedAt = null;
+    target.readyAt = null;
+  } else if (nextStatus === "Preparing") {
+    target.prepStartedAt = now;
+    target.readyAt = null;
+  } else if (nextStatus === "Ready") {
+    if (!Number.isFinite(Number(target.prepStartedAt))) {
+      target.prepStartedAt = now;
+    }
+    target.readyAt = now;
+  } else if (nextStatus === "Paid") {
+    if (!Number.isFinite(Number(target.readyAt))) {
+      target.readyAt = now;
+    }
+  }
+
   target.status = nextStatus;
   state.orders = latestOrders;
   persistOrders();
@@ -574,23 +779,21 @@ function maybeAutoPrint() {
   printTicket(next, { allowConnect: false });
 }
 
-function refreshOrders(announceNew) {
+function refreshOrders() {
   const previousIds = state.knownOrderIds;
   state.orders = loadStoredArray(STORAGE_KEYS.orders, DEFAULT_ORDERS);
+  const changed = normalizeAllOrders(state.orders);
+  if (changed) {
+    persistOrders();
+  }
   state.printRegistry = loadStoredObject(STORAGE_KEYS.printRegistry, {});
   state.knownOrderIds = new Set(state.orders.map((order) => order.id));
-
-  if (announceNew) {
-    const newlyAdded = state.orders.filter((order) => !previousIds.has(order.id) && order.status !== "Paid");
-    if (newlyAdded.length) {
-      const first = newlyAdded[0].id;
-      updateEventFeed(`${newlyAdded.length} new ticket(s) received. Latest: ${first}.`, "info");
-    }
-  }
+  return state.orders.filter((order) => !previousIds.has(order.id) && order.status !== "Paid");
 }
 
 function updatePrinterPanel() {
   autoPrintToggle.checked = state.settings.autoPrint;
+  soundAlertToggle.checked = state.settings.soundAlerts;
   printModeSelect.value = state.settings.printMode;
 
   if (state.settings.printMode === "serial") {
@@ -603,6 +806,51 @@ function updatePrinterPanel() {
     printerStatus.textContent = "Browser print mode. Set thermal printer as system default for fast operation.";
     connectPrinterBtn.textContent = "Printer Setup";
   }
+}
+
+function ensureAlertAudio() {
+  if (state.alertAudio) {
+    return state.alertAudio;
+  }
+  try {
+    const audio = new Audio(ORDER_ALERT_AUDIO_SRC);
+    audio.preload = "auto";
+    state.alertAudio = audio;
+    return audio;
+  } catch (error) {
+    return null;
+  }
+}
+
+function playAlertPattern(beepCount = 1) {
+  if (!state.settings.soundAlerts) {
+    return;
+  }
+  const baseAudio = ensureAlertAudio();
+  if (!baseAudio) {
+    updateEventFeed("New ticket received, but alert audio file could not be loaded.", "error");
+    return;
+  }
+
+  const count = Math.min(3, Math.max(1, Number(beepCount) || 1));
+  for (let index = 0; index < count; index += 1) {
+    const clip = baseAudio.cloneNode(true);
+    clip.volume = 1;
+    window.setTimeout(() => {
+      clip.play().catch(() => {
+        updateEventFeed("New ticket received. Tap once to enable sound alerts.", "info");
+      });
+    }, index * 500);
+  }
+}
+
+function handleNewOrders(newOrders) {
+  if (!Array.isArray(newOrders) || !newOrders.length) {
+    return;
+  }
+  const latest = newOrders[newOrders.length - 1];
+  updateEventFeed(`${newOrders.length} new ticket(s) received. Latest: ${latest.id}.`, "info");
+  playAlertPattern(newOrders.length);
 }
 
 function handleModeChange() {
@@ -684,6 +932,21 @@ autoPrintToggle.addEventListener("change", () => {
   }
 });
 
+soundAlertToggle.addEventListener("change", () => {
+  state.settings.soundAlerts = soundAlertToggle.checked;
+  saveSettings();
+  renderAll();
+  if (state.settings.soundAlerts) {
+    const audio = ensureAlertAudio();
+    if (audio) {
+      audio.load();
+    }
+    updateEventFeed("Sound alerts enabled.", "success");
+  } else {
+    updateEventFeed("Sound alerts muted.", "info");
+  }
+});
+
 printModeSelect.addEventListener("change", handleModeChange);
 
 connectPrinterBtn.addEventListener("click", async () => {
@@ -708,8 +971,9 @@ window.addEventListener("storage", (event) => {
   if (event.key !== STORAGE_KEYS.orders && event.key !== STORAGE_KEYS.printRegistry) {
     return;
   }
-  refreshOrders(true);
+  const newOrders = refreshOrders();
   renderAll();
+  handleNewOrders(newOrders);
   maybeAutoPrint();
 });
 
@@ -725,13 +989,21 @@ function init() {
     }
   }
 
+  if (normalizeAllOrders(state.orders)) {
+    persistOrders();
+  }
   state.knownOrderIds = new Set(state.orders.map((order) => order.id));
+  ensureAlertAudio();
   renderClock();
   renderAll();
-  window.setInterval(renderClock, 1000);
   window.setInterval(() => {
-    refreshOrders(false);
+    renderClock();
+    updateVisiblePrepTimers();
+  }, 1000);
+  window.setInterval(() => {
+    const newOrders = refreshOrders();
     renderAll();
+    handleNewOrders(newOrders);
     maybeAutoPrint();
   }, 2500);
   maybeAutoPrint();

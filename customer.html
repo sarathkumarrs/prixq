@@ -31,25 +31,27 @@
       <div id="dailyOffers" class="offer-list"></div>
     </section>
 
-    <section class="section">
+    <section class="section menu-section">
       <div class="section-head">
         <h2>Menu</h2>
-        <span id="activeOrderCount">0 Active Orders</span>
+        <button id="activeOrderCount" type="button" class="active-order-pill">0 Active Orders</button>
       </div>
-      <div class="filters">
-        <input id="menuSearch" type="search" placeholder="Search item or category">
-        <select id="sortSelect">
-          <option value="default">Sort: Recommended</option>
-          <option value="priceAsc">Price: Low to high</option>
-          <option value="priceDesc">Price: High to low</option>
-          <option value="nameAsc">Name: A to Z</option>
-        </select>
+      <div class="menu-sticky-controls">
+        <div class="filters">
+          <input id="menuSearch" type="search" placeholder="Search item or category">
+          <select id="sortSelect">
+            <option value="default">Sort: Recommended</option>
+            <option value="priceAsc">Price: Low to high</option>
+            <option value="priceDesc">Price: High to low</option>
+            <option value="nameAsc">Name: A to Z</option>
+          </select>
+        </div>
+        <div id="categoryChips" class="chip-row"></div>
       </div>
-      <div id="categoryChips" class="chip-row"></div>
       <div id="menuList" class="menu-list grouped"></div>
     </section>
 
-    <section class="section">
+    <section id="ticketSection" class="section">
       <h2>Your Ticket Status</h2>
       <div id="ticketList" class="ticket-list"></div>
     </section>

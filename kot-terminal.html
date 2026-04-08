@@ -45,6 +45,31 @@
       </article>
     </section>
 
+    <section id="soloPrepPanel" class="panel solo-prep hidden" aria-live="polite">
+      <div class="solo-head">
+        <h2>Solo Order Sprint</h2>
+        <span id="soloPrepBadge" class="solo-badge">No single active order</span>
+      </div>
+      <div class="solo-grid">
+        <article class="solo-metric">
+          <span>Ticket</span>
+          <strong id="soloPrepOrder">-</strong>
+        </article>
+        <article class="solo-metric">
+          <span>Elapsed</span>
+          <strong id="soloPrepElapsed">00:00</strong>
+        </article>
+        <article class="solo-metric">
+          <span>Target</span>
+          <strong id="soloPrepTarget">-</strong>
+        </article>
+        <article class="solo-metric">
+          <span>Remaining</span>
+          <strong id="soloPrepRemaining">-</strong>
+        </article>
+      </div>
+    </section>
+
     <section class="panel printer-panel">
       <div class="printer-copy">
         <h2>Printer Controls</h2>
@@ -54,6 +79,10 @@
         <label class="toggle">
           <input id="autoPrintToggle" type="checkbox" checked>
           <span>Auto print new tickets</span>
+        </label>
+        <label class="toggle">
+          <input id="soundAlertToggle" type="checkbox" checked>
+          <span>New order sound alert</span>
         </label>
         <label class="inline-field">
           <span>Output</span>
