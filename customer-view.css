@@ -452,6 +452,7 @@ input[type="search"] {
   left: 0;
   right: 0;
   bottom: 0;
+  z-index: 40;
   background: #fff;
   border-top: 1px solid var(--line);
   padding: 0.75rem max(0.9rem, (100vw - 720px) / 2 + 0.9rem) 0.82rem;
