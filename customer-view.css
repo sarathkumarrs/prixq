@@ -9,6 +9,7 @@
   --brand-soft: #fceeed;
   --ok: #1a7a46;
   --chip: #f7efea;
+  --cart-safe-space: 11.2rem;
 }
 
 * {
@@ -42,7 +43,7 @@ body::before {
   width: min(720px, 100%);
   margin: 0 auto;
   min-height: 100vh;
-  padding: 1rem 0.9rem 11.2rem;
+  padding: 1rem 0.9rem var(--cart-safe-space);
 }
 
 .phone-shell.cart-collapsed {
@@ -288,6 +289,7 @@ input[type="search"] {
 .menu-sticky-controls {
   position: sticky;
   top: env(safe-area-inset-top, 0px);
+  bottom: calc(var(--cart-safe-space) + env(safe-area-inset-bottom, 0px));
   z-index: 20;
   background: var(--card);
   padding: 0.2rem 0 0.5rem;
@@ -452,7 +454,8 @@ input[type="search"] {
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 40;
+  z-index: 1000;
+  isolation: isolate;
   background: #fff;
   border-top: 1px solid var(--line);
   padding: 0.75rem max(0.9rem, (100vw - 720px) / 2 + 0.9rem) 0.82rem;
