@@ -371,6 +371,42 @@ input[type="search"] {
   gap: 0.5rem;
 }
 
+.name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.42rem;
+}
+
+.diet-indicator {
+  width: 14px;
+  height: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.7px solid #2f9e44;
+  border-radius: 2px;
+  background: #fff;
+  flex: 0 0 14px;
+}
+
+.diet-indicator::after {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.diet-indicator.veg {
+  color: #2f9e44;
+  border-color: #2f9e44;
+}
+
+.diet-indicator.non-veg {
+  color: #b42323;
+  border-color: #b42323;
+}
+
 .name {
   margin: 0;
   font-weight: 700;
@@ -381,17 +417,6 @@ input[type="search"] {
   display: block;
   font-size: 0.78rem;
   color: var(--muted);
-}
-
-.tag {
-  display: inline-block;
-  margin-top: 0.22rem;
-  font-size: 0.68rem;
-  color: #81272a;
-  background: #fae4e4;
-  border: 1px solid #f0c7c8;
-  border-radius: 999px;
-  padding: 0.14rem 0.4rem;
 }
 
 .qty {

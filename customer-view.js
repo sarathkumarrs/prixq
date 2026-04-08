@@ -103,6 +103,34 @@ function money(value) {
   return `Rs. ${value}`;
 }
 
+function getDietInfo(item) {
+  if (typeof item?.isVeg === "boolean") {
+    return item.isVeg
+      ? { label: "Veg", className: "veg" }
+      : { label: "Non-Veg", className: "non-veg" };
+  }
+
+  const combined = `${item?.name || ""} ${item?.type || ""}`.toLowerCase();
+  const nonVegKeywords = [
+    "chicken",
+    "beef",
+    "mutton",
+    "fish",
+    "prawn",
+    "shrimp",
+    "egg",
+    "mutta",
+    "kozhi",
+    "erachi",
+    "meat"
+  ];
+  const isNonVeg = nonVegKeywords.some((keyword) => combined.includes(keyword));
+
+  return isNonVeg
+    ? { label: "Non-Veg", className: "non-veg" }
+    : { label: "Veg", className: "veg" };
+}
+
 function getMenuItem(id) {
   return MENU.find((item) => item.id === id) || {
     id,
@@ -436,14 +464,17 @@ function renderMenu() {
 
     items.forEach((item) => {
       const qty = state.cart[item.id] || 0;
+      const diet = getDietInfo(item);
       const card = document.createElement("article");
       card.className = "menu-item";
       card.innerHTML = `
         <div class="top-line">
           <div>
-            <p class="name">${item.name}</p>
+            <div class="name-row">
+              <p class="name">${item.name}</p>
+              <span class="diet-indicator ${diet.className}" title="${diet.label}" aria-label="${diet.label}"></span>
+            </div>
             <span class="meta">${item.prep} min prep</span>
-            <span class="tag">${item.type}</span>
           </div>
           <strong>${money(item.price)}</strong>
         </div>
